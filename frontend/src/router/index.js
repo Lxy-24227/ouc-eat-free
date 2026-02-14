@@ -1,16 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router'
-// 导入你写的那个页面
 import CreateDish from '../pages/CreateDish.vue'
+import DishRank from '../pages/DishRank.vue' // 确保导入了新写的页面
 
 const routes = [
   {
     path: '/',
-    redirect: '/CreateDish' // 让默认首页直接跳转到你的创建页面
+    redirect: '/CreateDish' // 默认进创建页
   },
   {
     path: '/CreateDish',
     name: 'CreateDish',
     component: CreateDish
+  },
+  {
+    path: '/DishRank',
+    name: 'DishRank',
+    component: DishRank
   }
 ]
 
