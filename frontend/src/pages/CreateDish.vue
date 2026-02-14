@@ -30,67 +30,92 @@
         />
       </div>
 
+      <div class="form-group rating-section">
+        <label>⭐️ 初始评分 (选填)</label>
+        <div class="stars">
+          <span
+            v-for="star in 5"
+            :key="star"
+            class="star"
+            :class="{ active: star <= formData.initialScore }"
+            @click="formData.initialScore = star"
+          >
+            ★
+          </span>
+          <span class="score-hint">{{ scoreHint }}</span>
+        </div>
+      </div>
+
       <button
         @click="handleSubmit"
         :disabled="isSubmitting"
         class="submit-btn"
       >
-        {{ isSubmitting ? '正在发布...' : '发布并去排行' }}
+        {{ isSubmitting ? '正在发布...' : '发布并查看排行' }}
       </button>
     </div>
 
-    <p class="footer-tip">让更多同学发现校园美味 ✨</p>
+    <p class="footer-tip">你的真实评价是大家避雷/安利的关键 ✨</p>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-// 注意：如果你的 api/dish.js 还没写好，可以先注释掉下面这行
-// import { createDish } from '../api/dish';
 
 const router = useRouter();
 const isSubmitting = ref(false);
 
-// 选项数据
 const canteens = ['一食堂', '二食堂', '三食堂', '四食堂'];
 const floors = ['B1', 'F1', 'F2', 'F3'];
 
-// 表单响应式数据
+// 表单响应式数据：增加了 initialScore
 const formData = ref({
   canteen: '一食堂',
   floor: 'F1',
-  name: ''
+  name: '',
+  initialScore: 0 // 默认为0分
 });
 
-// 提交处理函数
+// 计算评分提示文案
+const scoreHint = computed(() => {
+  const hints = {
+    0: '点击星星打分',
+    1: '极差，避雷',
+    2: '一般，不推荐',
+    3: '还可以，能吃',
+    4: '好吃，推荐',
+    5: '绝了，必须安利'
+  };
+  return hints[formData.value.initialScore];
+});
+
 const handleSubmit = async () => {
-  // 1. 基础非空校验
   if (!formData.value.name.trim()) {
     alert("请输入菜品名称！");
     return;
   }
 
+  // 校验是否打分（如果你们强制要求创建时必须评价）
+  if (formData.value.initialScore === 0) {
+    if (!confirm("你还没有打分，确定要提交吗？")) return;
+  }
+
   try {
     isSubmitting.value = true;
 
-    // --- 联调阶段 ---
-    // 如果后端接口已准备好，取消下面的注释：
-    // await createDish(formData.value);
-
-    // --- 模拟阶段 ---
-    // 模拟网络延迟 800ms
+    // --- 模拟提交 ---
+    console.log("提交的数据包含评分：", formData.value);
     await new Promise(resolve => setTimeout(resolve, 800));
 
-    alert("发布成功！");
+    alert("发布并评价成功！");
 
-    // 2. 跳转到排行榜页面
+    // 跳转到排行榜页面
     router.push('/DishRank');
 
   } catch (error) {
     console.error("提交失败:", error);
-    alert("服务器开小差了，我们将先为您跳转到榜单页");
-    router.push('/DishRank');
+    alert("发布失败，请检查网络");
   } finally {
     isSubmitting.value = false;
   }
@@ -98,6 +123,7 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
+/* 保持原有样式并增加打分样式 */
 .create-dish-container {
   padding: 20px;
   max-width: 500px;
@@ -162,6 +188,39 @@ select:focus, input:focus {
   border-color: #ff4757;
 }
 
+/* 评分区域专属样式 */
+.rating-section {
+  padding: 15px 0;
+  border-top: 1px dashed #eee;
+}
+
+.stars {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.star {
+  font-size: 30px;
+  color: #ddd;
+  cursor: pointer;
+  transition: color 0.2s, transform 0.1s;
+}
+
+.star:active {
+  transform: scale(1.2);
+}
+
+.star.active {
+  color: #ffca28;
+}
+
+.score-hint {
+  margin-left: 10px;
+  font-size: 14px;
+  color: #999;
+}
+
 .submit-btn {
   width: 100%;
   padding: 16px;
@@ -174,6 +233,7 @@ select:focus, input:focus {
   cursor: pointer;
   box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);
   transition: transform 0.2s, background-color 0.2s;
+  margin-top: 10px;
 }
 
 .submit-btn:active {
