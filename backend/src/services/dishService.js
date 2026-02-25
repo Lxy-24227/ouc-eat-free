@@ -37,9 +37,10 @@ function selectWeightedRandom(dishes) {
 // 获取榜单（分页）
 async function getRanking(type, restaurantId, floor, startDate, endDate, page, pageSize) {
     let sql = `
-        SELECT d.*, r.name as restaurant_name, r.floor 
-        FROM dishes d 
-        JOIN restaurants r ON d.restaurant_id = r.id 
+        SELECT d.*, r.name as restaurant_name, r.floor,
+               (SELECT COUNT(*) FROM ratings r2 WHERE r2.dish_id = d.id) AS total_votes
+        FROM dishes d
+        JOIN restaurants r ON d.restaurant_id = r.id
         WHERE 1=1
     `;
     const params = [];
@@ -59,8 +60,6 @@ async function getRanking(type, restaurantId, floor, startDate, endDate, page, p
         sql += ' AND DATE(d.created_at) <= ?';
         params.push(endDate);
     }
-    
-    // 排序
     sql += type === 'red' ? ' ORDER BY d.avg_score DESC' : ' ORDER BY d.avg_score ASC';
     
     // 分页

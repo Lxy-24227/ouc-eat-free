@@ -1,47 +1,39 @@
 <template>
   <div class="create-dish-container">
     <div class="header">
-      <button @click="$router.push('/DishRank')" class="back-btn">⬅ 榜单</button>
-      <h1>新增校园菜品</h1>
+      <button @click="$router.push('/DishRank')" class="back-btn">榜单</button>
+      <h1>新增菜品</h1>
     </div>
 
     <div class="card">
       <div class="form-group">
-        <label>📍 所属食堂</label>
+        <label>所属食堂</label>
         <select v-model="formData.canteen">
           <option v-for="c in canteens" :key="c" :value="c">{{ c }}</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label>🏢 具体楼层</label>
+        <label>楼层</label>
         <select v-model="formData.floor">
           <option v-for="f in floors" :key="f" :value="f">{{ f }}</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label>🍲 菜品名称</label>
+        <label>菜品名称</label>
         <input
           v-model="formData.name"
           type="text"
-          placeholder="请输入菜名，如：油泼面"
+          placeholder="请输入菜名"
           maxlength="20"
         />
       </div>
 
       <div class="form-group rating-section">
-        <label>⭐️ 初始评分 (选填)</label>
+        <label>初始评分（选填）</label>
         <div class="stars">
-          <span
-            v-for="star in 5"
-            :key="star"
-            class="star"
-            :class="{ active: star <= formData.initialScore }"
-            @click="formData.initialScore = star"
-          >
-            ★
-          </span>
+          <StarRating v-model="formData.initialScore" :show-score-text="false" />
           <span class="score-hint">{{ scoreHint }}</span>
         </div>
       </div>
@@ -51,17 +43,18 @@
         :disabled="isSubmitting"
         class="submit-btn"
       >
-        {{ isSubmitting ? '正在发布...' : '发布并查看排行' }}
+        {{ isSubmitting ? '提交中…' : '发布并查看排行' }}
       </button>
     </div>
 
-    <p class="footer-tip">你的真实评价是大家避雷/安利的关键 ✨</p>
+    <p class="footer-tip">真实评价帮助更多人选择</p>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import StarRating from '../components/StarRating.vue';
 
 const router = useRouter();
 const isSubmitting = ref(false);
@@ -80,12 +73,12 @@ const formData = ref({
 // 计算评分提示文案
 const scoreHint = computed(() => {
   const hints = {
-    0: '点击星星打分',
-    1: '极差，避雷',
+    0: '点击选择星级',
+    1: '极差，不予推荐',
     2: '一般，不推荐',
-    3: '还可以，能吃',
-    4: '好吃，推荐',
-    5: '绝了，必须安利'
+    3: '尚可，可以尝试',
+    4: '推荐，值得一试',
+    5: '非常推荐'
   };
   return hints[formData.value.initialScore];
 });
@@ -123,132 +116,118 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-/* 保持原有样式并增加打分样式 */
 .create-dish-container {
-  padding: 20px;
-  max-width: 500px;
+  padding: 24px;
+  max-width: 480px;
   margin: 0 auto;
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background: var(--bg-page);
 }
 
 .header {
   display: flex;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 28px;
 }
 
 .back-btn {
-  background: #eee;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 20px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 8px 14px;
+  border-radius: 8px;
   cursor: pointer;
-  margin-right: 15px;
+  margin-right: 16px;
   font-size: 14px;
+  font-weight: 500;
 }
 
 h1 {
-  font-size: 22px;
-  color: #333;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .card {
-  background: white;
-  padding: 25px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  background: var(--bg-card);
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
 }
 
 .form-group {
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 label {
   display: block;
-  margin-bottom: 10px;
-  font-weight: 600;
-  color: #444;
-  font-size: 15px;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 14px;
 }
 
 select, input {
   width: 100%;
-  padding: 14px;
-  border: 1.5px solid #eee;
-  border-radius: 10px;
-  font-size: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  color: var(--text-primary);
   outline: none;
-  transition: border-color 0.3s;
+  transition: border-color 0.2s;
   box-sizing: border-box;
+  background: var(--bg-card);
 }
 
 select:focus, input:focus {
-  border-color: #ff4757;
+  border-color: var(--accent);
 }
 
-/* 评分区域专属样式 */
 .rating-section {
-  padding: 15px 0;
-  border-top: 1px dashed #eee;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
 }
 
 .stars {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.star {
-  font-size: 30px;
-  color: #ddd;
-  cursor: pointer;
-  transition: color 0.2s, transform 0.1s;
-}
-
-.star:active {
-  transform: scale(1.2);
-}
-
-.star.active {
-  color: #ffca28;
+  gap: 12px;
 }
 
 .score-hint {
-  margin-left: 10px;
-  font-size: 14px;
-  color: #999;
+  font-size: 13px;
+  color: var(--text-tertiary);
 }
 
 .submit-btn {
   width: 100%;
-  padding: 16px;
-  background-color: #ff4757;
-  color: white;
+  padding: 14px;
+  background: var(--accent);
+  color: #fff;
   border: none;
-  border-radius: 12px;
-  font-size: 17px;
-  font-weight: bold;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);
-  transition: transform 0.2s, background-color 0.2s;
-  margin-top: 10px;
+  margin-top: 8px;
+  transition: opacity 0.2s;
 }
 
 .submit-btn:active {
-  transform: scale(0.98);
+  opacity: 0.92;
 }
 
 .submit-btn:disabled {
-  background-color: #ffb8bc;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .footer-tip {
   text-align: center;
-  color: #aaa;
-  font-size: 13px;
-  margin-top: 30px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  margin-top: 28px;
 }
 </style>

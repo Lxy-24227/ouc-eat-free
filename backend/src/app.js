@@ -1,6 +1,4 @@
-/**
- * 
- */
+/** Express 入口：挂载 /api/v1 路由，CORS + JSON 解析 */
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();

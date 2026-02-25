@@ -6,11 +6,12 @@ const { filterSensitive } = require('../utils/sensitiveWords');
 
 async function addComment(dishId, content, userId = 'anonymous') {
     const filtered = filterSensitive(content);
-    const [result] = await pool.query(
+    const [rows] = await pool.query(
         'INSERT INTO comments (dish_id, user_id, content) VALUES (?, ?, ?)',
         [dishId, userId, filtered]
     );
-    return { id: result.insertId, dishId, userId, content: filtered };
+    const id = rows && typeof rows.insertId !== 'undefined' ? rows.insertId : null;
+    return { id, dishId, userId, content: filtered };
 }
 
 async function getCommentsByDish(dishId, page = 1, pageSize = 10) {

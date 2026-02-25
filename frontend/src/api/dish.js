@@ -1,8 +1,9 @@
+/**
+ * 菜品相关接口。当前后端暂无创建菜品路由，CreateDish 页使用本地模拟提交；
+ * 若后端新增 POST /api/v1/dish 等，可在此扩展并接入。
+ */
+import request from './request';
 
-import axios from 'axios';
-
-// 创建菜品的接口函数
-export const createDish = (data) => {
-  // 注意：这里的 URL 需要根据你队友后端定义的路由来修改
-  return axios.post('/api/dishes', data);
-};
+export function createDish(data) {
+  return request.post('/dish', data);
+}
