@@ -1,0 +1,11 @@
+com\ouceat\backend\entity\Comment.class
+com\ouceat\backend\entity\Dish.class
+com\ouceat\backend\controller\rankController.class
+com\ouceat\backend\controller\dishController.class
+com\ouceat\backend\service\rankService.class
+com\ouceat\backend\BackendApplication.class
+com\ouceat\backend\repository\CommentRepository.class
+com\ouceat\backend\entity\Rating.class
+com\ouceat\backend\service\dishService.class
+com\ouceat\backend\repository\DishRepository.class
+com\ouceat\backend\repository\RatingRepository.class

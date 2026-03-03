@@ -1,0 +1,11 @@
+C:\Users\Luxingyi\Desktop\OUC_project\ouc-eat-free\backend\src\main\java\com\ouceat\backend\BackendApplication.java
+C:\Users\Luxingyi\Desktop\OUC_project\ouc-eat-free\backend\src\main\java\com\ouceat\backend\controller\dishController.java
+C:\Users\Luxingyi\Desktop\OUC_project\ouc-eat-free\backend\src\main\java\com\ouceat\backend\controller\rankController.java
+C:\Users\Luxingyi\Desktop\OUC_project\ouc-eat-free\backend\src\main\java\com\ouceat\backend\entity\Comment.java
+C:\Users\Luxingyi\Desktop\OUC_project\ouc-eat-free\backend\src\main\java\com\ouceat\backend\entity\Dish.java
+C:\Users\Luxingyi\Desktop\OUC_project\ouc-eat-free\backend\src\main\java\com\ouceat\backend\entity\Rating.java
+C:\Users\Luxingyi\Desktop\OUC_project\ouc-eat-free\backend\src\main\java\com\ouceat\backend\repository\CommentRepository.java
+C:\Users\Luxingyi\Desktop\OUC_project\ouc-eat-free\backend\src\main\java\com\ouceat\backend\repository\DishRepository.java
+C:\Users\Luxingyi\Desktop\OUC_project\ouc-eat-free\backend\src\main\java\com\ouceat\backend\repository\RatingRepository.java
+C:\Users\Luxingyi\Desktop\OUC_project\ouc-eat-free\backend\src\main\java\com\ouceat\backend\service\dishService.java
+C:\Users\Luxingyi\Desktop\OUC_project\ouc-eat-free\backend\src\main\java\com\ouceat\backend\service\rankService.java
