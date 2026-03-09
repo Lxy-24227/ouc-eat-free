@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 // API 路由前缀
-app.use('/api/v1', apiRouter);
+app.use('/api', apiRouter);
 
 // 错误处理中间件
 app.use((err, req, res, next) => {
