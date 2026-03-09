@@ -1,5 +1,7 @@
 /**
- * 评论接口：与后端 POST /api/v1/comment、GET /api/v1/dish/:id/comments 对应
+ * 评论接口：与后端 /api/v1 路由对应
+ * - POST /comment：body { dishId, content, userId? }
+ * - GET /dish/:id/comments：query { page, pageSize }
  */
 import request from './request';
 

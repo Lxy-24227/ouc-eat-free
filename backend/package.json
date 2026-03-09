@@ -1,1 +1,25 @@
-
+{
+  "name": "ouc-eat-free-backend",
+  "version": "1.0.0",
+  "description": "ouc-eat-free 后端服务，提供菜品排行榜接口、菜品评论接口及页面跳转相关接口，适配前端 Vite 项目的请求交互",
+  "main": "src/app.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "mysql2": "^3.6.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

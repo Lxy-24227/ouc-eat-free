@@ -99,6 +99,7 @@
         :id="`dish-card-${dish.id}`"
         class="dish-card"
         :class="{ 'top-three': index < 3, 'dish-card--highlight': highlightedDishId === dish.id }"
+        @click="goToDetail(dish)"
       >
         <span v-if="index < 3" class="card-badge">TOP{{ index + 1 }}</span>
         <div class="card-image-wrap">
@@ -114,7 +115,7 @@
           <div class="card-meta">
             <span class="card-price">¥{{ dish.price != null ? dish.price : '—' }}</span>
           </div>
-          <div class="rating-box">
+          <div class="rating-box" @click.stop>
             <p class="rating-label">我的评分</p>
             <StarRating
               v-model="dish.userScore"
@@ -130,6 +131,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import StarRating from '../components/StarRating.vue';
 import { getRanking } from '../api/rank';
 import { submitRating } from '../api/rating';
@@ -137,6 +139,7 @@ import { searchDish, getHighlightedParts } from '../utils/searchDish';
 import { debounce } from '../utils/debounce';
 import { throttle } from '../utils/throttle';
 
+const router = useRouter();
 const currentTab = ref('red');
 const loading = ref(false);
 
@@ -293,6 +296,11 @@ const filteredDishes = computed(() => {
   return list;
 });
 
+/** 跳转：进入评论详情页，通过 state 传递菜品数据，直链打开时详情页用 params.id 兜底 */
+function goToDetail(dish) {
+  router.push({ name: 'DishDetail', params: { id: dish.id }, state: { dish } });
+}
+
 async function handleRate(dish) {
   if (!dish.userScore || dish.userScore < 1) return;
   try {
@@ -381,6 +389,7 @@ h1 {
   background: var(--bg-card);
   border: 1px solid var(--border);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
 }
 
 .dish-card.top-three {
