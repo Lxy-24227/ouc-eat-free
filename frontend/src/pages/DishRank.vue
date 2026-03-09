@@ -18,13 +18,87 @@
       >黑榜</div>
     </div>
 
+    <!-- 搜索模块：输入框 + 下拉结果 -->
+    <div class="search-wrapper" ref="searchWrapperRef">
+      <div class="search-input-wrap">
+        <input
+          ref="searchInputRef"
+          v-model="searchKeyword"
+          type="search"
+          class="search-input"
+          placeholder="搜索菜品名称…"
+          autocomplete="off"
+          aria-label="搜索菜品"
+          aria-autocomplete="list"
+          :aria-expanded="showSearchDropdown"
+          aria-controls="search-results-list"
+          @input="onSearchInput"
+          @keydown="onSearchKeydown"
+          @focus="onSearchFocus"
+        />
+        <button
+          v-if="searchKeyword"
+          type="button"
+          class="search-clear"
+          aria-label="清空搜索"
+          @click="clearSearch"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- 搜索结果下拉列表 -->
+      <Transition name="search-dropdown">
+        <div
+          v-if="showSearchDropdown"
+          id="search-results-list"
+          class="search-dropdown"
+          role="listbox"
+          aria-label="搜索结果"
+          @scroll.passive="onDropdownScroll"
+        >
+          <div v-if="searching" class="search-loading">搜索中…</div>
+          <template v-else-if="searchResults.length > 0">
+            <div
+              v-for="(dish, idx) in searchResults"
+              :key="dish.id"
+              class="search-item"
+              :class="{ 'search-item--selected': idx === selectedSearchIndex }"
+              role="option"
+              :aria-selected="idx === selectedSearchIndex"
+              @click="selectSearchResult(dish)"
+              @mouseenter="selectedSearchIndex = idx"
+            >
+              <span class="search-item-name">
+                <template v-for="(part, i) in getHighlightedParts(dish.name, searchKeyword)" :key="i">
+                  <mark v-if="part.match" class="search-highlight">{{ part.text }}</mark>
+                  <span v-else>{{ part.text }}</span>
+                </template>
+              </span>
+              <div class="search-item-stars">
+                <StarRating
+                  :model-value="Math.round(dish.averageScore)"
+                  readonly
+                  :show-score-text="true"
+                />
+              </div>
+            </div>
+          </template>
+          <div v-else class="search-empty">未找到匹配的菜品</div>
+        </div>
+      </Transition>
+    </div>
+
     <div v-if="loading" class="loading-tip">加载中…</div>
     <div v-else class="list">
       <div
         v-for="(dish, index) in filteredDishes"
         :key="dish.id"
+        :id="`dish-card-${dish.id}`"
         class="dish-card"
-        :class="{ 'top-three': index < 3 }"
+        :class="{ 'top-three': index < 3, 'dish-card--highlight': highlightedDishId === dish.id }"
       >
         <span v-if="index < 3" class="card-badge">TOP{{ index + 1 }}</span>
         <div class="card-image-wrap">
@@ -55,10 +129,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import StarRating from '../components/StarRating.vue';
 import { getRanking } from '../api/rank';
 import { submitRating } from '../api/rating';
+import { searchDish, getHighlightedParts } from '../utils/searchDish';
+import { debounce } from '../utils/debounce';
+import { throttle } from '../utils/throttle';
 
 const currentTab = ref('red');
 const loading = ref(false);
@@ -71,6 +148,106 @@ const MOCK_DISHES = [
 ];
 
 const dishes = ref([...MOCK_DISHES]);
+
+// ========== 搜索相关 ==========
+const searchKeyword = ref('');
+const searchWrapperRef = ref(null);
+const searchInputRef = ref(null);
+const searching = ref(false);
+const selectedSearchIndex = ref(0);
+const highlightedDishId = ref(null);
+
+/** 是否显示搜索下拉（有输入且非空） */
+const showSearchDropdown = computed(() => !!searchKeyword.value.trim());
+
+/** 搜索结果（最多 10 条），依赖 filteredDishes */
+const searchResults = computed(() => {
+  const kw = searchKeyword.value.trim();
+  if (!kw) return [];
+  return searchDish(kw, filteredDishes.value, 10);
+});
+
+/** 防抖 300ms 执行搜索逻辑，用于控制 searching 状态 */
+const runSearch = debounce(() => {
+  searching.value = false;
+}, 300);
+
+function onSearchInput() {
+  if (!searchKeyword.value.trim()) {
+    searching.value = false;
+    return;
+  }
+  searching.value = true;
+  selectedSearchIndex.value = 0;
+  runSearch();
+}
+
+function onSearchFocus() {
+  if (searchKeyword.value.trim()) runSearch();
+}
+
+function clearSearch(opts = {}) {
+  const { focusInput = true } = opts;
+  searchKeyword.value = '';
+  searching.value = false;
+  selectedSearchIndex.value = 0;
+  highlightedDishId.value = null;
+  if (focusInput) searchInputRef.value?.focus();
+}
+
+function onSearchKeydown(e) {
+  if (!showSearchDropdown.value) {
+    if (e.key === 'Escape') clearSearch();
+    return;
+  }
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    clearSearch();
+    return;
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (searchResults.value.length > 0) {
+      selectedSearchIndex.value = Math.min(selectedSearchIndex.value + 1, searchResults.value.length - 1);
+    }
+    return;
+  }
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (searchResults.value.length > 0) {
+      selectedSearchIndex.value = Math.max(selectedSearchIndex.value - 1, 0);
+    }
+    return;
+  }
+  if (e.key === 'Enter' && searchResults.value.length > 0) {
+    e.preventDefault();
+    selectSearchResult(searchResults.value[selectedSearchIndex.value]);
+  }
+}
+
+function selectSearchResult(dish) {
+  clearSearch({ focusInput: false });
+  highlightedDishId.value = dish.id;
+  setTimeout(() => {
+    document.getElementById(`dish-card-${dish.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 50);
+  setTimeout(() => {
+    highlightedDishId.value = null;
+  }, 2000);
+}
+
+/** 下拉列表滚动节流（100ms），优化滚动体验 */
+const onDropdownScroll = throttle(() => {}, 100);
+
+/** 点击外部关闭下拉 */
+function handleClickOutside(e) {
+  if (searchWrapperRef.value && !searchWrapperRef.value.contains(e.target)) {
+    if (searchKeyword.value.trim()) {
+      searchKeyword.value = '';
+      searching.value = false;
+    }
+  }
+}
 
 function mapDish(item) {
   return {
@@ -100,7 +277,13 @@ async function fetchRanking() {
   }
 }
 
-onMounted(fetchRanking);
+onMounted(() => {
+  fetchRanking();
+  document.addEventListener('click', handleClickOutside);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 watch(currentTab, fetchRanking);
 
 const filteredDishes = computed(() => {
@@ -197,6 +380,7 @@ h1 {
   overflow: hidden;
   background: var(--bg-card);
   border: 1px solid var(--border);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .dish-card.top-three {
@@ -289,5 +473,172 @@ h1 {
   padding: 32px;
   color: var(--text-tertiary);
   font-size: 14px;
+}
+
+/* ========== 搜索模块样式 ========== */
+.search-wrapper {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 40px 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+}
+
+.search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, background 0.2s;
+}
+
+.search-clear:hover {
+  color: var(--text-primary);
+  background: var(--accent-soft);
+}
+
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  z-index: 100;
+}
+
+/* 自定义滚动条，匹配页面风格 */
+.search-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.search-dropdown::-webkit-scrollbar-track {
+  background: var(--bg-page);
+  border-radius: 3px;
+}
+
+.search-dropdown::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.search-dropdown::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+.search-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  border-bottom: 1px solid var(--border);
+}
+
+.search-item:last-child {
+  border-bottom: none;
+}
+
+.search-item:hover,
+.search-item--selected {
+  background: var(--accent-soft);
+}
+
+.search-item-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+}
+
+.search-highlight {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+.search-item-stars {
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.search-loading,
+.search-empty {
+  padding: 20px 14px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-tertiary);
+}
+
+/* 下拉展开/收起动画 */
+.search-dropdown-enter-active,
+.search-dropdown-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.search-dropdown-enter-from,
+.search-dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* 选中菜品高亮 */
+.dish-card--highlight {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+/* 响应式：移动端、平板 */
+@media (max-width: 768px) {
+  .search-input {
+    font-size: 16px; /* 防止 iOS 缩放 */
+  }
+}
+
+@media (min-width: 1200px) {
+  .rank-container {
+    max-width: 640px;
+  }
 }
 </style>
