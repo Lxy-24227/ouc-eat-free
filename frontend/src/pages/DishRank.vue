@@ -1,9 +1,14 @@
 <template>
   <div class="rank-container">
     <div class="header">
-      <h1>菜品排行</h1>
-      <button @click="$router.push('/CreateDish')" class="add-btn">我要投稿</button>
+  <h1>菜品排行</h1>
+  <div class="header-actions">
+      <button @click="$router.push('/CreateDish')" class="add-btn">投稿</button>
+      <div class="avatar-wrapper" @click="$router.push('/profile')">
+        <img :src="userInfo.avatar" alt="我的" class="header-avatar" />
+      </div>
     </div>
+  </div>
 
     <div class="tabs">
       <div
@@ -142,6 +147,21 @@ import { throttle } from '../utils/throttle';
 const router = useRouter();
 const currentTab = ref('red');
 const loading = ref(false);
+
+const userInfo = ref({
+  avatar: 'https://via.placeholder.com/150/ebebeb/999?text=User'
+});
+
+onMounted(() => {
+  fetchRanking();
+  document.addEventListener('click', handleClickOutside);
+
+  // 新增：进入主页时读取本地用户信息（同步头像）
+  const cached = localStorage.getItem('user_info');
+  if (cached) {
+    userInfo.value = JSON.parse(cached);
+  }
+});
 
 const MOCK_DISHES = [
   { id: 101, name: '红烧排骨', canteen: '一食堂', floor: 'F2', averageScore: 4.8, totalVotes: 156, userScore: 0, price: 12 },
@@ -323,6 +343,42 @@ async function handleRate(dish) {
   margin: 0 auto;
   min-height: 100vh;
   background: var(--bg-page);
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+.profile-btn {
+  /* 如果想给"我的"按钮换个颜色强调，可以覆盖背景和颜色 */
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.avatar-wrapper:active {
+  transform: scale(0.9);
+}
+
+.header-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .header {
