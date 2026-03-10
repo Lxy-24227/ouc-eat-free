@@ -1,0 +1,28 @@
+# --- IDE 相关 (JetBrains/PyCharm) ---
+.idea/
+*.iml
+out/
+gen/
+
+# --- 后端相关 (Maven/Gradle/Java) ---
+target/
+*.class
+*.jar
+*.war
+*.zip
+*.tar.gz
+# 如果有本地配置文件，通常不提交
+backend/src/main/resources/application-local.properties
+
+# --- 前端相关 (Node/Vue) ---
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- 系统相关 ---
+.DS_Store
+Thumbs.db
