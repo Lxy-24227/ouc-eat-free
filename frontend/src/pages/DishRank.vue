@@ -18,7 +18,6 @@
       >黑榜</div>
     </div>
 
-    <!-- 搜索模块：输入框 + 下拉结果 -->
     <div class="search-wrapper" ref="searchWrapperRef">
       <div class="search-input-wrap">
         <input
@@ -49,7 +48,6 @@
         </button>
       </div>
 
-      <!-- 搜索结果下拉列表 -->
       <Transition name="search-dropdown">
         <div
           v-if="showSearchDropdown"
@@ -107,9 +105,11 @@
         </div>
         <div class="card-body">
           <h3 class="card-title">{{ dish.name }}</h3>
-          <p class="card-location">{{ dish.canteen }} · {{ dish.floor }}</p>
+          <p class="card-location">
+            {{ dish.canteen }}<template v-if="dish.canteen && dish.floor"> · </template>{{ dish.floor }}
+          </p>
           <div class="card-stars">
-            <StarRating :model-value="Math.round(dish.averageScore)" readonly :show-score-text="false" />
+            <StarRating :model-value="Math.round(dish.averageScore)" readonly :show-score-text="true" />
             <span class="card-votes">{{ dish.totalVotes }} 人评分</span>
           </div>
           <div class="card-meta">
@@ -160,17 +160,14 @@ const searching = ref(false);
 const selectedSearchIndex = ref(0);
 const highlightedDishId = ref(null);
 
-/** 是否显示搜索下拉（有输入且非空） */
 const showSearchDropdown = computed(() => !!searchKeyword.value.trim());
 
-/** 搜索结果（最多 10 条），依赖 filteredDishes */
 const searchResults = computed(() => {
   const kw = searchKeyword.value.trim();
   if (!kw) return [];
   return searchDish(kw, filteredDishes.value, 10);
 });
 
-/** 防抖 300ms 执行搜索逻辑，用于控制 searching 状态 */
 const runSearch = debounce(() => {
   searching.value = false;
 }, 300);
@@ -239,10 +236,8 @@ function selectSearchResult(dish) {
   }, 2000);
 }
 
-/** 下拉列表滚动节流（100ms），优化滚动体验 */
 const onDropdownScroll = throttle(() => {}, 100);
 
-/** 点击外部关闭下拉 */
 function handleClickOutside(e) {
   if (searchWrapperRef.value && !searchWrapperRef.value.contains(e.target)) {
     if (searchKeyword.value.trim()) {
@@ -256,10 +251,10 @@ function mapDish(item) {
   return {
     id: item.id,
     name: item.name ?? '未命名',
-    canteen: item.restaurant_name ?? '',
+    canteen: item.canteen ?? item.restaurant_name ?? '',
     floor: item.floor ?? '',
-    averageScore: Number(item.avg_score) || 0,
-    totalVotes: Number(item.total_votes) ?? 0,
+    averageScore: Number(item.averageScore ?? item.avgRating ?? item.avg_score) || 0,
+    totalVotes: Number(item.totalVotes ?? item.voteCount ?? item.total_votes) || 0,
     userScore: 0,
     price: item.price ?? null,
     image: item.image ?? null,
@@ -296,9 +291,11 @@ const filteredDishes = computed(() => {
   return list;
 });
 
-/** 跳转：进入评论详情页，通过 state 传递菜品数据，直链打开时详情页用 params.id 兜底 */
+/** 统一修改核心：解构 Vue Proxy 以防止传递失败，同时增加 localStorage 作为刷新兜底 **/
 function goToDetail(dish) {
-  router.push({ name: 'DishDetail', params: { id: dish.id }, state: { dish } });
+  const plainDish = JSON.parse(JSON.stringify(dish));
+  localStorage.setItem('current_dish_detail', JSON.stringify(plainDish));
+  router.push({ name: 'DishDetail', params: { id: dish.id }, state: { dish: plainDish } });
 }
 
 async function handleRate(dish) {
@@ -484,7 +481,6 @@ h1 {
   font-size: 14px;
 }
 
-/* ========== 搜索模块样式 ========== */
 .search-wrapper {
   position: relative;
   margin-bottom: 20px;
@@ -553,7 +549,6 @@ h1 {
   z-index: 100;
 }
 
-/* 自定义滚动条，匹配页面风格 */
 .search-dropdown::-webkit-scrollbar {
   width: 6px;
 }
@@ -620,7 +615,6 @@ h1 {
   color: var(--text-tertiary);
 }
 
-/* 下拉展开/收起动画 */
 .search-dropdown-enter-active,
 .search-dropdown-leave-active {
   transition: opacity 0.15s ease, transform 0.15s ease;
@@ -632,16 +626,14 @@ h1 {
   transform: translateY(-4px);
 }
 
-/* 选中菜品高亮 */
 .dish-card--highlight {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
-/* 响应式：移动端、平板 */
 @media (max-width: 768px) {
   .search-input {
-    font-size: 16px; /* 防止 iOS 缩放 */
+    font-size: 16px;
   }
 }
 
