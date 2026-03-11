@@ -29,6 +29,18 @@
         "userId": "同学A",
         "score": 4,
         "createTime": "2026-03-01 12:10:00"
+      },
+      {
+        "id": 2,
+        "userId": "anonymous",
+        "score": 5,
+        "createTime": "2026-03-11 07:26:17"
+      },
+      {
+        "id": 3,
+        "userId": "anonymous",
+        "score": 5,
+        "createTime": "2026-03-11 07:26:21"
       }
     ]
   },
@@ -72,6 +84,14 @@
         "score": 2,
         "content": "今天有点偏咸",
         "createTime": "2026-03-03 12:05:00"
+      },
+      {
+        "id": 2,
+        "userId": "1",
+        "username": "1",
+        "score": 1,
+        "content": "难吃",
+        "createTime": "2026-03-11 07:42:39"
       }
     ],
     "ratings": [
@@ -80,6 +100,12 @@
         "userId": "同学D",
         "score": 3,
         "createTime": "2026-03-03 12:10:00"
+      },
+      {
+        "id": 2,
+        "userId": "卢",
+        "score": 5,
+        "createTime": "2026-03-11 07:37:14"
       }
     ]
   },
@@ -98,5 +124,48 @@
         "createTime": "2026-03-04 18:20:00"
       }
     ]
+  },
+  {
+    "id": 5,
+    "name": "茄子",
+    "canteen": "一食堂",
+    "price": 12,
+    "createdAt": "2026-03-11 07:36:21",
+    "comments": [
+      {
+        "id": 1,
+        "userId": "卢",
+        "username": "卢",
+        "score": 5,
+        "content": "好吃",
+        "createTime": "2026-03-11 07:36:52"
+      }
+    ],
+    "ratings": [
+      {
+        "id": 1,
+        "userId": "卢",
+        "score": 5,
+        "createTime": "2026-03-11 08:13:08"
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "name": "炸鸡",
+    "canteen": "一食堂",
+    "price": 0.5,
+    "createdAt": "2026-03-11 07:43:15",
+    "comments": [
+      {
+        "id": 1,
+        "userId": "1",
+        "username": "1",
+        "score": 5,
+        "content": "好吃",
+        "createTime": "2026-03-11 07:43:27"
+      }
+    ],
+    "ratings": []
   }
 ]
