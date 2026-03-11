@@ -115,6 +115,17 @@ async function createDish(payload) {
   return normalizeDish(nextDish);
 }
 
+async function updateDish(id, payload) {
+  const dishes = await loadStoredDishes();
+  const idx = dishes.findIndex(item => String(item.id) === String(id));
+  if (idx < 0) return null;
+  const target = dishes[idx];
+  if (payload.name != null) target.name = String(payload.name).trim();
+  if (payload.price !== undefined) target.price = payload.price === '' || payload.price == null ? null : Number(payload.price);
+  await saveStoredDishes(dishes);
+  return normalizeDish(target);
+}
+
 module.exports = {
   loadStoredDishes,
   saveStoredDishes,
@@ -123,5 +134,6 @@ module.exports = {
   selectWeightedRandom,
   getRanking,
   getDishById,
-  createDish
+  createDish,
+  updateDish
 };

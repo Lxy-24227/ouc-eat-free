@@ -1,0 +1,33 @@
+# Nginx 配置示例 - 用于服务器部署
+# 使用方法：复制到 /etc/nginx/conf.d/ 或 /etc/nginx/sites-available/ 并修改路径
+# 然后 nginx -t 检查，nginx -s reload 重载
+
+server {
+    listen 80;
+    server_name _;  # 或替换为你的域名，如 example.com
+
+    # 前端静态文件（npm run build 生成的 dist 目录）
+    root /root/ouc-eat-free/frontend/dist;
+    index index.html;
+
+    # 前端路由：所有非静态资源请求都返回 index.html（Vue Router history 模式必需）
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # API 代理到后端
+    location /api {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # 静态资源缓存
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}

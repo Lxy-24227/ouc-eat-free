@@ -8,7 +8,7 @@ let idCounter = 1;
 
 function addComment(dishId, content, userId = 'anonymous') {
   const id = idCounter++;
-  const createTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  const createTime = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
   const item = { id, dishId, userId, content, createTime };
   if (!store.has(String(dishId))) {
     store.set(String(dishId), []);

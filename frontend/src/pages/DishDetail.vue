@@ -11,7 +11,7 @@
       <div class="dish-card">
         <div class="dish-title-row">
           <div>
-            <h2 class="card-title">{{ dish.name }}</h2>
+            <h2 class="card-title clickable" @click="openAdminMode" title="点击进入管理员模式">{{ dish.name }}</h2>
             <p class="card-location">{{ dish.canteen || '未填写食堂' }}</p>
           </div>
           <div class="price-chip">¥{{ dish.price != null ? dish.price : '—' }}</div>
@@ -89,6 +89,49 @@
         <p v-else class="empty-tip">暂无评价，快来抢沙发～</p>
       </div>
     </template>
+
+    <!-- 管理员模式弹窗 -->
+    <Teleport to="body">
+      <div v-if="showAdminModal" class="admin-modal-overlay" @click.self="closeAdminModal">
+        <div class="admin-modal">
+          <div class="admin-modal-header">
+            <h3>管理员模式</h3>
+            <button class="admin-modal-close" @click="closeAdminModal" aria-label="关闭">×</button>
+          </div>
+          <div class="admin-modal-body">
+            <template v-if="!adminVerified">
+              <p class="admin-hint">请输入管理员密码以继续</p>
+              <input
+                v-model="adminPassword"
+                type="password"
+                class="admin-input"
+                placeholder="管理员密码"
+                @keydown.enter="verifyAdmin"
+              />
+              <p v-if="adminAuthError" class="admin-error">{{ adminAuthError }}</p>
+              <button class="admin-btn primary" @click="verifyAdmin">验证</button>
+            </template>
+            <template v-else>
+              <div class="admin-edit-form">
+                <div class="admin-field">
+                  <label>菜品名称</label>
+                  <input v-model="editName" type="text" class="admin-input" placeholder="菜品名称" />
+                </div>
+                <div class="admin-field">
+                  <label>价格（元）</label>
+                  <input v-model="editPrice" type="text" class="admin-input" placeholder="如 12.5" />
+                </div>
+                <p v-if="adminSaveError" class="admin-error">{{ adminSaveError }}</p>
+                <div class="admin-actions">
+                  <button class="admin-btn primary" :disabled="isSaving" @click="saveDishEdit">保存</button>
+                  <button class="admin-btn ghost" @click="closeAdminModal">取消</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -97,7 +140,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import StarRating from '../components/StarRating.vue';
 import { getComments, addComment } from '../api/comment';
-import { getDishDetail } from '../api/dish';
+import { getDishDetail, updateDish } from '../api/dish';
 import { getUserInfo } from '../utils/auth';
 
 const route = useRoute();
@@ -109,6 +152,15 @@ const comments = ref([]);
 const commentsLoading = ref(false);
 const isSubmitting = ref(false);
 const currentUser = ref(getUserInfo());
+
+const showAdminModal = ref(false);
+const adminPassword = ref('');
+const adminVerified = ref(false);
+const adminAuthError = ref('');
+const editName = ref('');
+const editPrice = ref('');
+const adminSaveError = ref('');
+const isSaving = ref(false);
 
 function formatScore(score) {
   return Number(score || 0).toFixed(1);
@@ -229,6 +281,73 @@ async function initPage() {
   await Promise.all([fetchDish(), fetchComments()]);
 }
 
+function openAdminMode() {
+  if (!dish.value) return;
+  showAdminModal.value = true;
+  adminPassword.value = '';
+  adminVerified.value = false;
+  adminAuthError.value = '';
+  adminSaveError.value = '';
+  editName.value = dish.value.name || '';
+  editPrice.value = dish.value.price != null ? String(dish.value.price) : '';
+}
+
+function closeAdminModal() {
+  showAdminModal.value = false;
+  adminVerified.value = false;
+}
+
+function verifyAdmin() {
+  adminAuthError.value = '';
+  if (adminPassword.value === '123123') {
+    adminVerified.value = true;
+    editName.value = dish.value.name || '';
+    editPrice.value = dish.value.price != null ? String(dish.value.price) : '';
+  } else {
+    adminAuthError.value = '密码错误，请重试';
+  }
+}
+
+async function saveDishEdit() {
+  adminSaveError.value = '';
+  const name = editName.value.trim();
+  const priceStr = editPrice.value.trim();
+  const price = priceStr === '' ? null : Number(priceStr);
+
+  if (!name) {
+    adminSaveError.value = '菜品名称不能为空';
+    return;
+  }
+  if (price !== null && (Number.isNaN(price) || price < 0)) {
+    adminSaveError.value = '价格必须为大于等于 0 的数字';
+    return;
+  }
+
+  const id = route.params.id;
+  if (!id) return;
+
+  isSaving.value = true;
+  try {
+    const res = await updateDish(id, {
+      name,
+      price: price ?? '',
+      adminPassword: '123123'
+    });
+    if (res?.code === 200) {
+      dish.value = res.data;
+      localStorage.setItem('current_dish_detail', JSON.stringify(res.data));
+      closeAdminModal();
+      alert('修改成功！');
+    } else {
+      adminSaveError.value = res?.message || '保存失败';
+    }
+  } catch (error) {
+    adminSaveError.value = error?.message || '保存失败';
+  } finally {
+    isSaving.value = false;
+  }
+}
+
 onMounted(initPage);
 
 watch(() => route.params.id, initPage);
@@ -298,6 +417,15 @@ h1 {
   margin: 0 0 8px;
   font-size: 28px;
   color: var(--text-primary);
+}
+
+.card-title.clickable {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.card-title.clickable:hover {
+  color: var(--accent);
 }
 
 .card-location {
@@ -530,6 +658,140 @@ h1 {
   padding: 24px;
   color: var(--text-tertiary);
   font-size: 14px;
+}
+
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.admin-modal {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15);
+  min-width: 320px;
+  max-width: 90vw;
+}
+
+.admin-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0ede2;
+}
+
+.admin-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.admin-modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  line-height: 1;
+  border-radius: 8px;
+}
+
+.admin-modal-close:hover {
+  background: rgba(96, 160, 115, 0.12);
+  color: var(--text-primary);
+}
+
+.admin-modal-body {
+  padding: 24px;
+}
+
+.admin-hint {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.admin-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d7e2d8;
+  border-radius: 12px;
+  font-size: 14px;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+
+.admin-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.admin-error {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #c53030;
+}
+
+.admin-btn {
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.admin-btn.primary {
+  border: none;
+  background: linear-gradient(135deg, var(--accent), #79ba8a);
+  color: #fff;
+}
+
+.admin-btn.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.admin-btn.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-btn.ghost {
+  border: 1px solid #d7e2d8;
+  background: #fff;
+  color: var(--text-secondary);
+  margin-left: 12px;
+}
+
+.admin-btn.ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.admin-edit-form .admin-field {
+  margin-bottom: 16px;
+}
+
+.admin-edit-form .admin-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.admin-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 8px;
 }
 
 @media (max-width: 768px) {

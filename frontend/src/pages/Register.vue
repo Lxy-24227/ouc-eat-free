@@ -2,9 +2,13 @@
   <div class="page-container">
     <div class="auth-shell">
       <div class="brand-panel">
-        <p class="brand-tag">零数据库部署</p>
+        <p class="brand-tag">
+          <span style="font-weight: bold; font-size: 1.7em; letter-spacing: 0.1em; color: #60a073; font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;">
+            OUC <span style="color:#46845e;">Eat Free</span>
+          </span>
+        </p>
         <h1>注册账号</h1>
-        <p class="brand-desc">账号信息会直接写入 JSON 文件，上传服务器后无需再配置 MySQL 等数据库。</p>
+        <p class="brand-desc">这里欢迎任何友善犀利的声音</p>
       </div>
 
       <div class="auth-card">

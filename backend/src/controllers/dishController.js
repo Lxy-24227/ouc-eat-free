@@ -63,3 +63,35 @@ exports.createDish = async (req, res) => {
     res.status(status).json({ code: status, message: error.message || '创建失败' });
   }
 };
+
+const ADMIN_PASSWORD = '123123';
+
+exports.updateDish = async (req, res) => {
+  const id = req.params.id;
+  const { name, price, adminPassword } = req.body;
+
+  if (adminPassword !== ADMIN_PASSWORD) {
+    return res.status(403).json({ code: 403, message: '管理员密码错误' });
+  }
+
+  const nameVal = name != null ? String(name).trim() : undefined;
+  const priceVal = price !== undefined ? (price === '' || price == null ? null : Number(price)) : undefined;
+
+  if (nameVal !== undefined && !nameVal) {
+    return res.status(400).json({ code: 400, message: '菜品名称不能为空' });
+  }
+  if (priceVal !== undefined && (Number.isNaN(priceVal) || priceVal < 0)) {
+    return res.status(400).json({ code: 400, message: '价格必须为大于等于 0 的数字' });
+  }
+
+  try {
+    const updated = await dishService.updateDish(id, { name: nameVal, price: priceVal });
+    if (!updated) {
+      return res.status(404).json({ code: 404, message: '菜品不存在' });
+    }
+    res.json({ code: 200, message: '修改成功', data: updated });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ code: 500, message: '修改失败' });
+  }
+};

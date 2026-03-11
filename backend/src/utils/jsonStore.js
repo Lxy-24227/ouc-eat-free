@@ -48,7 +48,7 @@ function getNextId(list = []) {
 }
 
 function formatDate(date = new Date()) {
-  return new Date(date).toISOString().slice(0, 19).replace('T', ' ');
+  return new Date(date).toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
 }
 
 module.exports = {

@@ -16,6 +16,7 @@ router.post('/addComment', commentController.addComment);
 router.get('/dish/random', dishController.getRandomDish);
 router.get('/dish/ranking', dishController.getRanking);
 router.get('/dish/:id', dishController.getDishById);
+router.put('/dish/:id', dishController.updateDish);
 router.post('/dish', dishController.createDish);
 router.post('/rating', ratingController.submitRating);
 router.post('/comment', commentController.addComment);
