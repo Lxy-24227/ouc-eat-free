@@ -58,6 +58,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { clearUserInfo, getUserInfo } from '../utils/auth';
 
 const router = useRouter();
 const isEditing = ref(false);
@@ -72,11 +73,10 @@ const userInfo = ref({
 const editForm = ref({ username: '', bio: '' });
 
 onMounted(() => {
-  const cached = localStorage.getItem('user_info');
-  if (cached) {
-    const parsed = JSON.parse(cached);
+  const parsed = getUserInfo();
+  if (parsed) {
     userInfo.value = { ...userInfo.value, ...parsed };
-    editForm.value = { username: parsed.username, bio: parsed.bio };
+    editForm.value = { username: parsed.username || '', bio: parsed.bio || '' };
   }
 });
 
@@ -118,7 +118,7 @@ function saveProfile() {
 
 function handleLogout() {
   if(confirm('确定要退出登录吗？')) {
-    localStorage.removeItem('user_info');
+    clearUserInfo();
     router.push('/login');
   }
 }

@@ -1,38 +1,44 @@
 <template>
   <div class="page-container">
-    <div class="header">
-      <h1>欢迎回来</h1>
-    </div>
-
-    <div class="auth-card">
-      <div class="form-group">
-        <label class="form-label">用户名</label>
-        <input
-          v-model="form.username"
-          type="text"
-          class="form-input"
-          placeholder="请输入用户名"
-        />
+    <div class="auth-shell">
+      <div class="brand-panel">
+        <p class="brand-tag">食堂菜品打分</p>
+        <h1>欢迎回来</h1>
+        <p class="brand-desc">登录后即可创建菜品、参与评分与评论，排行榜会实时更新。</p>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">密码</label>
-        <input
-          v-model="form.password"
-          type="password"
-          class="form-input"
-          placeholder="请输入密码"
-          @keyup.enter="handleLogin"
-        />
-      </div>
+      <div class="auth-card">
+        <div class="form-group">
+          <label class="form-label">用户名</label>
+          <input
+            v-model.trim="form.username"
+            type="text"
+            class="form-input"
+            placeholder="请输入用户名"
+            maxlength="20"
+          />
+        </div>
 
-      <button class="btn-primary" :disabled="isLoading" @click="handleLogin">
-        {{ isLoading ? '登录中...' : '登录' }}
-      </button>
+        <div class="form-group">
+          <label class="form-label">密码</label>
+          <input
+            v-model.trim="form.password"
+            type="password"
+            class="form-input"
+            placeholder="请输入密码"
+            maxlength="20"
+            @keyup.enter="handleLogin"
+          />
+        </div>
 
-      <div class="auth-links">
-        <span class="text-hint">还没有账号？</span>
-        <button class="link-btn" @click="$router.push('/register')">立即注册</button>
+        <button class="btn-primary" :disabled="isLoading" @click="handleLogin">
+          {{ isLoading ? '登录中...' : '登录' }}
+        </button>
+
+        <div class="auth-links">
+          <span class="text-hint">还没有账号？</span>
+          <button class="link-btn" @click="router.push('/register')">立即注册</button>
+        </div>
       </div>
     </div>
   </div>
@@ -40,9 +46,12 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import { loginUser } from '../api/auth';
+import { saveUserInfo } from '../utils/auth';
 
 const router = useRouter();
+const route = useRoute();
 const form = ref({ username: '', password: '' });
 const isLoading = ref(false);
 
@@ -53,98 +62,147 @@ async function handleLogin() {
   }
 
   isLoading.value = true;
-  // 模拟 API 请求
-  setTimeout(() => {
-    // 模拟保存用户信息到本地
-    localStorage.setItem('user_info', JSON.stringify({
+
+  try {
+    const res = await loginUser({
       username: form.value.username,
-      avatar: 'https://via.placeholder.com/150/ebebeb/999?text=User',
-      bio: '这个人很懒，什么都没写~'
-    }));
+      password: form.value.password
+    });
+
+    if (res?.code !== 200) {
+      alert(res?.message || '用户名/密码错误');
+      return;
+    }
+
+    saveUserInfo({ username: res.data.username });
+    const redirect = route.query.redirect ? decodeURIComponent(route.query.redirect) : '/DishRank';
+    router.push(redirect);
+  } catch (error) {
+    alert(error?.message || '用户名/密码错误');
+  } finally {
     isLoading.value = false;
-    router.push('/DishRank'); // 登录成功跳回主页
-  }, 800);
+  }
 }
 </script>
 
 <style scoped>
-/* 基础容器规范同步自现有组件 */
 .page-container {
-  padding: 24px;
-  max-width: 560px;
-  margin: 0 auto;
   min-height: 100vh;
-  background: var(--bg-page);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(132, 199, 152, 0.18), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(255, 214, 153, 0.2), transparent 28%),
+    var(--bg-page);
+}
+
+.auth-shell {
+  width: min(940px, 100%);
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.brand-panel,
+.auth-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(198, 220, 202, 0.8);
+  border-radius: 24px;
+  box-shadow: 0 18px 40px rgba(73, 105, 77, 0.08);
+}
+
+.brand-panel {
+  padding: 36px;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
-.header {
-  margin-bottom: 32px;
-  text-align: center;
+.brand-tag {
+  margin: 0 0 14px;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
 }
 
 h1 {
-  font-size: 24px;
-  font-weight: 600;
+  margin: 0 0 12px;
+  font-size: 32px;
+  line-height: 1.2;
   color: var(--text-primary);
+}
+
+.brand-desc {
   margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  font-size: 15px;
 }
 
 .auth-card {
-  background: var(--bg-card);
-  padding: 24px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  padding: 32px 28px;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .form-label {
   display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary);
   margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .form-input {
   width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  box-sizing: border-box;
+  padding: 13px 14px;
+  border: 1px solid #d7e2d8;
+  border-radius: 14px;
+  background: #f9fcf8;
   font-size: 15px;
   color: var(--text-primary);
-  background: var(--bg-card);
   outline: none;
-  transition: border-color 0.2s ease;
-  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.form-input:hover {
+  border-color: #bdd7c1;
 }
 
 .form-input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(96, 160, 115, 0.12);
+  transform: translateY(-1px);
 }
 
 .btn-primary {
   width: 100%;
-  padding: 12px;
-  background: var(--accent);
-  color: #fff;
+  margin-top: 10px;
+  padding: 14px;
   border: none;
-  border-radius: 8px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), #79ba8a);
+  color: #fff;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  margin-top: 8px;
-  transition: opacity 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(96, 160, 115, 0.2);
 }
 
 .btn-primary:disabled {
-  opacity: 0.6;
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
@@ -162,12 +220,31 @@ h1 {
   background: transparent;
   border: none;
   color: var(--accent);
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
   padding: 0 4px;
+  transition: opacity 0.2s ease;
 }
 
-@media (min-width: 1200px) {
-  .page-container { max-width: 480px; }
+.link-btn:hover {
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .auth-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-panel {
+    padding: 28px 24px 12px;
+  }
+
+  .auth-card {
+    padding: 24px 20px;
+  }
+
+  h1 {
+    font-size: 28px;
+  }
 }
 </style>
