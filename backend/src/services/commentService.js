@@ -1,57 +1,55 @@
 /**
- * 评论服务：支持 MySQL 与内存存储（USE_MEMORY_STORE=1 时使用内存）
+ * 评论服务：基于 dishes.json 的评论持久化
  */
 const { filterSensitive } = require('../utils/sensitiveWords');
-const memoryStore = require('../stores/commentMemoryStore');
+const { getNextId, formatDate } = require('../utils/jsonStore');
+const { loadStoredDishes, saveStoredDishes } = require('./dishService');
 
-const useMemory = process.env.USE_MEMORY_STORE === '1';
+async function addComment(dishId, content, userId = 'anonymous', score = 5) {
+  const dishes = await loadStoredDishes();
+  const target = dishes.find(item => String(item.id) === String(dishId));
 
-async function addComment(dishId, content, userId = 'anonymous') {
-    const filtered = filterSensitive(content);
-    if (useMemory) {
-        const item = memoryStore.addComment(dishId, filtered, userId);
-        return { id: item.id, dishId, userId, content: filtered, createTime: item.createTime };
-    }
-    try {
-        const pool = require('../models/db');
-        const [rows] = await pool.query(
-            'INSERT INTO comments (dish_id, user_id, content) VALUES (?, ?, ?)',
-            [dishId, userId, filtered]
-        );
-        const id = rows?.insertId ?? null;
-        return { id, dishId, userId, content: filtered };
-    } catch (err) {
-        console.warn('MySQL 不可用，使用内存存储:', err.message);
-        const item = memoryStore.addComment(dishId, filtered, userId);
-        return { id: item.id, dishId, userId, content: filtered, createTime: item.createTime };
-    }
+  if (!target) {
+    const error = new Error('菜品不存在');
+    error.status = 404;
+    throw error;
+  }
+
+  if (!Array.isArray(target.comments)) {
+    target.comments = [];
+  }
+
+  const filtered = filterSensitive(content);
+  const saved = {
+    id: getNextId(target.comments),
+    userId: userId || 'anonymous',
+    username: userId || 'anonymous',
+    score: Number(score),
+    content: filtered,
+    createTime: formatDate()
+  };
+
+  target.comments.push(saved);
+  await saveStoredDishes(dishes);
+  return { ...saved, dishId: Number(dishId) };
 }
 
 async function getCommentsByDish(dishId, page = 1, pageSize = 10) {
-    if (useMemory) {
-        return memoryStore.getCommentsByDish(dishId, page, pageSize);
-    }
-    try {
-        const pool = require('../models/db');
-        const offset = (page - 1) * pageSize;
-        const [rows] = await pool.query(
-            'SELECT id, user_id, content, created_at FROM comments WHERE dish_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
-            [dishId, pageSize, offset]
-        );
-        const [totalResult] = await pool.query(
-            'SELECT COUNT(*) as total FROM comments WHERE dish_id = ?',
-            [dishId]
-        );
-        return {
-            list: rows,
-            total: totalResult[0].total,
-            page,
-            pageSize
-        };
-    } catch (err) {
-        console.warn('MySQL 不可用，使用内存存储:', err.message);
-        return memoryStore.getCommentsByDish(dishId, page, pageSize);
-    }
+  const dishes = await loadStoredDishes();
+  const target = dishes.find(item => String(item.id) === String(dishId));
+  const comments = Array.isArray(target?.comments) ? [...target.comments] : [];
+  comments.sort((a, b) => String(b.createTime).localeCompare(String(a.createTime)));
+
+  const safePage = Number(page) > 0 ? Number(page) : 1;
+  const safePageSize = Number(pageSize) > 0 ? Number(pageSize) : 10;
+  const offset = (safePage - 1) * safePageSize;
+
+  return {
+    list: comments.slice(offset, offset + safePageSize),
+    total: comments.length,
+    page: safePage,
+    pageSize: safePageSize
+  };
 }
 
 module.exports = { addComment, getCommentsByDish };

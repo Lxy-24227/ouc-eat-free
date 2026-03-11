@@ -9,7 +9,9 @@ const commentValidation = [
   body('content')
     .trim()
     .notEmpty().withMessage('评论内容不能为空')
-    .isLength({ max: 20 }).withMessage('评论需控制在20字以内')
+    .isLength({ max: 20 }).withMessage('评论需控制在20字以内'),
+  body('score')
+    .isInt({ min: 1, max: 5 }).withMessage('评分需在1-5分之间')
 ];
 
 /** 菜品ID校验 */
@@ -25,38 +27,41 @@ function handleValidation(req, res, next) {
   next();
 }
 
-/** POST /comment：body 含 dishId、content、userId */
+/** POST /comment：body 含 dishId、content、score、userId */
 exports.addComment = [
   body('dishId').isInt({ min: 1 }).withMessage('dishId 必填且为正整数'),
   ...commentValidation,
   handleValidation,
   async (req, res) => {
-    const { dishId, content, userId } = req.body;
+    const { dishId, content, userId, score } = req.body;
     try {
-      const saved = await commentService.addComment(dishId, content.trim(), userId);
+      // 最小改动：仅修复 /api/addComment 持久化，评论写入 dishes.json
+      const saved = await commentService.addComment(dishId, content.trim(), userId, score);
       res.json({ code: 200, message: '提交成功', data: saved });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ code: 500, message: '评论失败：' + error.message });
+      const status = error.status || 500;
+      res.status(status).json({ code: status, message: '评论失败：' + error.message });
     }
   }
 ];
 
-/** POST /dish/:id/comments：REST 风格，body 仅含 content */
+/** POST /dish/:id/comments：REST 风格，body 含 content、score */
 exports.addCommentByDishId = [
   dishIdParam,
   ...commentValidation,
   handleValidation,
   async (req, res) => {
     const dishId = parseInt(req.params.id, 10);
-    const { content } = req.body;
+    const { content, score } = req.body;
     const userId = req.body.userId || 'anonymous';
     try {
-      const saved = await commentService.addComment(dishId, content.trim(), userId);
+      const saved = await commentService.addComment(dishId, content.trim(), userId, score);
       res.json({ code: 200, message: '提交成功', data: saved });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ code: 500, message: '评论失败：' + error.message });
+      const status = error.status || 500;
+      res.status(status).json({ code: status, message: '评论失败：' + error.message });
     }
   }
 ];
@@ -72,9 +77,12 @@ exports.getComments = [
     try {
       const result = await commentService.getCommentsByDish(dishId, page, pageSize);
       const list = result.list.map(item => ({
+        id: item.id,
         content: item.content,
         createTime: item.created_at ? String(item.created_at).slice(0, 19).replace('T', ' ') : (item.createTime || ''),
-        userId: item.user_id ?? item.userId
+        userId: item.user_id ?? item.userId,
+        username: item.username ?? item.userId ?? item.user_id,
+        score: Number(item.score) || 0
       }));
       res.json({
         code: 200,

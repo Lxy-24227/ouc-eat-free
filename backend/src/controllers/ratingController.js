@@ -13,6 +13,7 @@ exports.submitRating = async (req, res) => {
         res.json({ code: 200, message: '评分成功', data: result });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ code: 500, message: '评分失败：' + error.message });
+        const status = error.status || 500;
+        res.status(status).json({ code: status, message: '评分失败：' + error.message });
     }
 };

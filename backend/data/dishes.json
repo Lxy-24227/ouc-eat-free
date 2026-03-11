@@ -1,0 +1,102 @@
+[
+  {
+    "id": 1,
+    "name": "红烧排骨",
+    "canteen": "一食堂",
+    "price": 12,
+    "createdAt": "2026-03-01 12:00:00",
+    "comments": [
+      {
+        "id": 1,
+        "userId": "demo",
+        "username": "demo",
+        "score": 5,
+        "content": "排骨很入味，值得再点",
+        "createTime": "2026-03-01 12:30:00"
+      },
+      {
+        "id": 2,
+        "userId": "testuser",
+        "username": "testuser",
+        "score": 5,
+        "content": "????",
+        "createTime": "2026-03-11 06:09:51"
+      }
+    ],
+    "ratings": [
+      {
+        "id": 1,
+        "userId": "同学A",
+        "score": 4,
+        "createTime": "2026-03-01 12:10:00"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "香辣鸡腿饭",
+    "canteen": "二食堂",
+    "price": 14,
+    "createdAt": "2026-03-02 11:20:00",
+    "comments": [
+      {
+        "id": 1,
+        "userId": "同学B",
+        "username": "同学B",
+        "score": 4,
+        "content": "分量足，微辣刚好",
+        "createTime": "2026-03-02 11:35:00"
+      },
+      {
+        "id": 2,
+        "userId": "demo",
+        "username": "demo",
+        "score": 5,
+        "content": "鸡腿很嫩，米饭也香",
+        "createTime": "2026-03-02 12:15:00"
+      }
+    ],
+    "ratings": []
+  },
+  {
+    "id": 3,
+    "name": "青椒土豆丝",
+    "canteen": "三食堂",
+    "price": 8,
+    "createdAt": "2026-03-03 11:40:00",
+    "comments": [
+      {
+        "id": 1,
+        "userId": "同学C",
+        "username": "同学C",
+        "score": 2,
+        "content": "今天有点偏咸",
+        "createTime": "2026-03-03 12:05:00"
+      }
+    ],
+    "ratings": [
+      {
+        "id": 1,
+        "userId": "同学D",
+        "score": 3,
+        "createTime": "2026-03-03 12:10:00"
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "番茄鸡蛋面",
+    "canteen": "四食堂",
+    "price": 10,
+    "createdAt": "2026-03-04 18:00:00",
+    "comments": [],
+    "ratings": [
+      {
+        "id": 1,
+        "userId": "同学E",
+        "score": 2,
+        "createTime": "2026-03-04 18:20:00"
+      }
+    ]
+  }
+]

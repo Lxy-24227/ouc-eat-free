@@ -1,8 +1,8 @@
 /**
- * 榜单接口：与后端 GET /api/v1/dish/ranking 对应
+ * 榜单接口：与后端 GET /api/getRank 对应
  */
 import request from './request';
 
 export function getRanking(params = {}) {
-  return request.get('/dish/ranking', { params });
+  return request.get('/getRank', { params });
 }

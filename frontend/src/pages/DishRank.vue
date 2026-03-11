@@ -1,97 +1,112 @@
 <template>
   <div class="rank-container">
-    <div class="header">
-      <h1>菜品排行</h1>
-      <button @click="$router.push('/CreateDish')" class="add-btn">我要投稿</button>
-    </div>
+    <div class="hero-card">
+      <div class="header">
+        <div>
+          <p class="hero-tag">食堂排行榜</p>
+          <h1>今天吃什么</h1>
+          <p class="hero-desc">基于真实评分与评论的食堂菜品榜单，创建和评论后会实时刷新。</p>
+        </div>
 
-    <div class="tabs">
-      <div
-        class="tab"
-        :class="{ active: currentTab === 'red' }"
-        @click="currentTab = 'red'"
-      >红榜</div>
-      <div
-        class="tab"
-        :class="{ active: currentTab === 'black' }"
-        @click="currentTab = 'black'"
-      >黑榜</div>
-    </div>
+        <div class="header-actions">
+          <template v-if="currentUser?.username">
+            <button @click="router.push('/CreateDish')" class="solid-btn">投稿菜品</button>
+            <button @click="router.push('/profile')" class="ghost-btn">{{ currentUser.username }}</button>
+          </template>
+          <template v-else>
+            <button @click="router.push('/login')" class="ghost-btn">登录</button>
+            <button @click="router.push('/register')" class="solid-btn">注册</button>
+          </template>
+        </div>
+      </div>
 
-    <div class="search-wrapper" ref="searchWrapperRef">
-      <div class="search-input-wrap">
-        <input
-          ref="searchInputRef"
-          v-model="searchKeyword"
-          type="search"
-          class="search-input"
-          placeholder="搜索菜品名称…"
-          autocomplete="off"
-          aria-label="搜索菜品"
-          aria-autocomplete="list"
-          :aria-expanded="showSearchDropdown"
-          aria-controls="search-results-list"
-          @input="onSearchInput"
-          @keydown="onSearchKeydown"
-          @focus="onSearchFocus"
-        />
+      <div class="tabs">
         <button
-          v-if="searchKeyword"
-          type="button"
-          class="search-clear"
-          aria-label="清空搜索"
-          @click="clearSearch"
+          class="tab"
+          :class="{ active: currentTab === 'red' }"
+          @click="currentTab = 'red'"
         >
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-          </svg>
+          红榜
+        </button>
+        <button
+          class="tab"
+          :class="{ active: currentTab === 'black' }"
+          @click="currentTab = 'black'"
+        >
+          黑榜
         </button>
       </div>
 
-      <Transition name="search-dropdown">
-        <div
-          v-if="showSearchDropdown"
-          id="search-results-list"
-          class="search-dropdown"
-          role="listbox"
-          aria-label="搜索结果"
-          @scroll.passive="onDropdownScroll"
-        >
-          <div v-if="searching" class="search-loading">搜索中…</div>
-          <template v-else-if="searchResults.length > 0">
-            <div
-              v-for="(dish, idx) in searchResults"
-              :key="dish.id"
-              class="search-item"
-              :class="{ 'search-item--selected': idx === selectedSearchIndex }"
-              role="option"
-              :aria-selected="idx === selectedSearchIndex"
-              @click="selectSearchResult(dish)"
-              @mouseenter="selectedSearchIndex = idx"
-            >
-              <span class="search-item-name">
-                <template v-for="(part, i) in getHighlightedParts(dish.name, searchKeyword)" :key="i">
-                  <mark v-if="part.match" class="search-highlight">{{ part.text }}</mark>
-                  <span v-else>{{ part.text }}</span>
-                </template>
-              </span>
-              <div class="search-item-stars">
-                <StarRating
-                  :model-value="Math.round(dish.averageScore)"
-                  readonly
-                  :show-score-text="true"
-                />
-              </div>
-            </div>
-          </template>
-          <div v-else class="search-empty">未找到匹配的菜品</div>
+      <div class="search-wrapper" ref="searchWrapperRef">
+        <div class="search-input-wrap">
+          <input
+            ref="searchInputRef"
+            v-model="searchKeyword"
+            type="search"
+            class="search-input"
+            placeholder="搜索菜品名称"
+            autocomplete="off"
+            aria-label="搜索菜品"
+            aria-autocomplete="list"
+            :aria-expanded="showSearchDropdown"
+            aria-controls="search-results-list"
+            @input="onSearchInput"
+            @keydown="onSearchKeydown"
+            @focus="onSearchFocus"
+          />
+          <button
+            v-if="searchKeyword"
+            type="button"
+            class="search-clear"
+            aria-label="清空搜索"
+            @click="clearSearch"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+          </button>
         </div>
-      </Transition>
+
+        <Transition name="search-dropdown">
+          <div
+            v-if="showSearchDropdown"
+            id="search-results-list"
+            class="search-dropdown"
+            role="listbox"
+            aria-label="搜索结果"
+            @scroll.passive="onDropdownScroll"
+          >
+            <div v-if="searching" class="search-loading">搜索中…</div>
+            <template v-else-if="searchResults.length > 0">
+              <div
+                v-for="(dish, idx) in searchResults"
+                :key="dish.id"
+                class="search-item"
+                :class="{ 'search-item--selected': idx === selectedSearchIndex }"
+                role="option"
+                :aria-selected="idx === selectedSearchIndex"
+                @click="selectSearchResult(dish)"
+                @mouseenter="selectedSearchIndex = idx"
+              >
+                <span class="search-item-name">
+                  <template v-for="(part, i) in getHighlightedParts(dish.name, searchKeyword)" :key="i">
+                    <mark v-if="part.match" class="search-highlight">{{ part.text }}</mark>
+                    <span v-else>{{ part.text }}</span>
+                  </template>
+                </span>
+                <span class="search-item-meta">{{ dish.canteen }}</span>
+              </div>
+            </template>
+            <div v-else class="search-empty">未找到匹配的菜品</div>
+          </div>
+        </Transition>
+      </div>
     </div>
 
     <div v-if="loading" class="loading-tip">加载中…</div>
+    <div v-else-if="filteredDishes.length === 0" class="empty-panel">暂无菜品，登录后点击“投稿菜品”来创建第一道菜吧。</div>
     <div v-else class="list">
-      <div
+      <article
         v-for="(dish, index) in filteredDishes"
         :key="dish.id"
         :id="`dish-card-${dish.id}`"
@@ -100,23 +115,37 @@
         @click="goToDetail(dish)"
       >
         <span v-if="index < 3" class="card-badge">TOP{{ index + 1 }}</span>
-        <div class="card-image-wrap">
-          <img :src="dish.image || 'https://via.placeholder.com/400x240/ebebeb/999?text=—'" :alt="dish.name" class="card-image" />
-        </div>
         <div class="card-body">
-          <h3 class="card-title">{{ dish.name }}</h3>
-          <p class="card-location">
-            {{ dish.canteen }}<template v-if="dish.canteen && dish.floor"> · </template>{{ dish.floor }}
-          </p>
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">{{ dish.name }}</h3>
+              <p class="card-location">{{ dish.canteen || '未填写食堂' }}</p>
+            </div>
+            <div class="price-chip">¥{{ dish.price != null ? dish.price : '—' }}</div>
+          </div>
+
+          <div class="card-stats">
+            <div class="stat-box">
+              <span class="stat-label">平均分</span>
+              <strong>{{ formatScore(dish.averageScore) }}</strong>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">评分数</span>
+              <strong>{{ dish.totalVotes }}</strong>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">评论数</span>
+              <strong>{{ dish.commentCount }}</strong>
+            </div>
+          </div>
+
           <div class="card-stars">
             <StarRating :model-value="Math.round(dish.averageScore)" readonly :show-score-text="true" />
-            <span class="card-votes">{{ dish.totalVotes }} 人评分</span>
+            <span class="card-comment-count">{{ dish.commentCount }} 条评论</span>
           </div>
-          <div class="card-meta">
-            <span class="card-price">¥{{ dish.price != null ? dish.price : '—' }}</span>
-          </div>
+
           <div class="rating-box" @click.stop>
-            <p class="rating-label">我的评分</p>
+            <p class="rating-label">快速评分</p>
             <StarRating
               v-model="dish.userScore"
               @update:modelValue="handleRate(dish)"
@@ -124,35 +153,29 @@
             />
           </div>
         </div>
-      </div>
+      </article>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import StarRating from '../components/StarRating.vue';
 import { getRanking } from '../api/rank';
 import { submitRating } from '../api/rating';
 import { searchDish, getHighlightedParts } from '../utils/searchDish';
 import { debounce } from '../utils/debounce';
 import { throttle } from '../utils/throttle';
+import { getUserInfo } from '../utils/auth';
 
 const router = useRouter();
+const route = useRoute();
 const currentTab = ref('red');
 const loading = ref(false);
+const dishes = ref([]);
+const currentUser = ref(getUserInfo());
 
-const MOCK_DISHES = [
-  { id: 101, name: '红烧排骨', canteen: '一食堂', floor: 'F2', averageScore: 4.8, totalVotes: 156, userScore: 0, price: 12 },
-  { id: 102, name: '螺蛳粉', canteen: '二食堂', floor: 'B1', averageScore: 2.1, totalVotes: 89, userScore: 0, price: 10 },
-  { id: 103, name: '菠萝咕咾肉', canteen: '三食堂', floor: 'F1', averageScore: 4.5, totalVotes: 42, userScore: 0, price: 15 },
-  { id: 104, name: '仰望星空派', canteen: '四食堂', floor: 'F3', averageScore: 1.2, totalVotes: 230, userScore: 0, price: 8 },
-];
-
-const dishes = ref([...MOCK_DISHES]);
-
-// ========== 搜索相关 ==========
 const searchKeyword = ref('');
 const searchWrapperRef = ref(null);
 const searchInputRef = ref(null);
@@ -162,6 +185,20 @@ const highlightedDishId = ref(null);
 
 const showSearchDropdown = computed(() => !!searchKeyword.value.trim());
 
+const filteredDishes = computed(() => {
+  return dishes.value.filter(dish => {
+    if (currentTab.value === 'black') {
+      return dish.totalVotes > 0 && dish.averageScore < 3;
+    }
+    return dish.totalVotes === 0 || dish.averageScore >= 3;
+  }).sort((a, b) => {
+    if (currentTab.value === 'black') {
+      return a.averageScore - b.averageScore || a.commentCount - b.commentCount;
+    }
+    return b.averageScore - a.averageScore || b.commentCount - a.commentCount;
+  });
+});
+
 const searchResults = computed(() => {
   const kw = searchKeyword.value.trim();
   if (!kw) return [];
@@ -170,7 +207,17 @@ const searchResults = computed(() => {
 
 const runSearch = debounce(() => {
   searching.value = false;
-}, 300);
+}, 250);
+
+function formatScore(score) {
+  return Number(score || 0).toFixed(1);
+}
+
+function handleClickOutside(event) {
+  if (searchWrapperRef.value && !searchWrapperRef.value.contains(event.target)) {
+    clearSearch({ focusInput: false });
+  }
+}
 
 function onSearchInput() {
   if (!searchKeyword.value.trim()) {
@@ -186,8 +233,8 @@ function onSearchFocus() {
   if (searchKeyword.value.trim()) runSearch();
 }
 
-function clearSearch(opts = {}) {
-  const { focusInput = true } = opts;
+function clearSearch(options = {}) {
+  const { focusInput = true } = options;
   searchKeyword.value = '';
   searching.value = false;
   selectedSearchIndex.value = 0;
@@ -195,32 +242,36 @@ function clearSearch(opts = {}) {
   if (focusInput) searchInputRef.value?.focus();
 }
 
-function onSearchKeydown(e) {
+function onSearchKeydown(event) {
   if (!showSearchDropdown.value) {
-    if (e.key === 'Escape') clearSearch();
+    if (event.key === 'Escape') clearSearch();
     return;
   }
-  if (e.key === 'Escape') {
-    e.preventDefault();
+
+  if (event.key === 'Escape') {
+    event.preventDefault();
     clearSearch();
     return;
   }
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
+
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
     if (searchResults.value.length > 0) {
       selectedSearchIndex.value = Math.min(selectedSearchIndex.value + 1, searchResults.value.length - 1);
     }
     return;
   }
-  if (e.key === 'ArrowUp') {
-    e.preventDefault();
+
+  if (event.key === 'ArrowUp') {
+    event.preventDefault();
     if (searchResults.value.length > 0) {
       selectedSearchIndex.value = Math.max(selectedSearchIndex.value - 1, 0);
     }
     return;
   }
-  if (e.key === 'Enter' && searchResults.value.length > 0) {
-    e.preventDefault();
+
+  if (event.key === 'Enter' && searchResults.value.length > 0) {
+    event.preventDefault();
     selectSearchResult(searchResults.value[selectedSearchIndex.value]);
   }
 }
@@ -238,60 +289,34 @@ function selectSearchResult(dish) {
 
 const onDropdownScroll = throttle(() => {}, 100);
 
-function handleClickOutside(e) {
-  if (searchWrapperRef.value && !searchWrapperRef.value.contains(e.target)) {
-    if (searchKeyword.value.trim()) {
-      searchKeyword.value = '';
-      searching.value = false;
-    }
-  }
-}
-
 function mapDish(item) {
   return {
     id: item.id,
     name: item.name ?? '未命名',
     canteen: item.canteen ?? item.restaurant_name ?? '',
-    floor: item.floor ?? '',
     averageScore: Number(item.averageScore ?? item.avgRating ?? item.avg_score) || 0,
     totalVotes: Number(item.totalVotes ?? item.voteCount ?? item.total_votes) || 0,
+    commentCount: Number(item.commentCount ?? item.comments?.length) || 0,
     userScore: 0,
-    price: item.price ?? null,
-    image: item.image ?? null,
+    price: item.price ?? null
   };
 }
 
 async function fetchRanking() {
   loading.value = true;
   try {
+    // 最小改动：仅在初始化/创建后重新请求 /api/getRank，修复排行榜不更新
     const res = await getRanking({ type: currentTab.value, page: 1, pageSize: 50 });
-    if (res?.code === 200 && res?.data?.list?.length) {
-      dishes.value = res.data.list.map(mapDish);
-    }
+    dishes.value = res?.code === 200 && Array.isArray(res?.data?.list)
+      ? res.data.list.map(mapDish)
+      : [];
   } catch (_) {
-    dishes.value = [...MOCK_DISHES];
+    dishes.value = [];
   } finally {
     loading.value = false;
   }
 }
 
-onMounted(() => {
-  fetchRanking();
-  document.addEventListener('click', handleClickOutside);
-});
-onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside);
-});
-watch(currentTab, fetchRanking);
-
-const filteredDishes = computed(() => {
-  const list = currentTab.value === 'red'
-    ? dishes.value.filter(d => d.averageScore >= 3).sort((a, b) => b.averageScore - a.averageScore)
-    : dishes.value.filter(d => d.averageScore < 3).sort((a, b) => a.averageScore - b.averageScore);
-  return list;
-});
-
-/** 统一修改核心：解构 Vue Proxy 以防止传递失败，同时增加 localStorage 作为刷新兜底 **/
 function goToDetail(dish) {
   const plainDish = JSON.parse(JSON.stringify(dish));
   localStorage.setItem('current_dish_detail', JSON.stringify(plainDish));
@@ -301,221 +326,183 @@ function goToDetail(dish) {
 async function handleRate(dish) {
   if (!dish.userScore || dish.userScore < 1) return;
   try {
-    await submitRating(dish.id, dish.userScore);
-    const newTotal = (dish.totalVotes || 0) + 1;
-    const newAvg = ((dish.averageScore * (dish.totalVotes || 0)) + dish.userScore) / newTotal;
-    dish.averageScore = Math.round(newAvg * 100) / 100;
-    dish.totalVotes = newTotal;
-    alert(`打分成功！该菜品目前平均分：${dish.averageScore.toFixed(1)}`);
-  } catch (e) {
-    const newTotal = (dish.totalVotes || 0) + 1;
-    dish.averageScore = ((dish.averageScore * (dish.totalVotes || 0)) + dish.userScore) / newTotal;
-    dish.totalVotes = newTotal;
-    alert(`打分已更新（本地）：${dish.averageScore.toFixed(1)}`);
+    const user = getUserInfo();
+    await submitRating(dish.id, dish.userScore, user?.username);
+    await fetchRanking();
+    alert('评分成功！');
+  } catch (error) {
+    alert(error?.message || '评分失败');
   }
 }
+
+onMounted(() => {
+  currentUser.value = getUserInfo();
+  fetchRanking();
+  document.addEventListener('click', handleClickOutside);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
+
+watch(currentTab, fetchRanking);
+watch(() => route.query.refresh, () => {
+  currentUser.value = getUserInfo();
+  fetchRanking();
+});
 </script>
 
 <style scoped>
 .rank-container {
-  padding: 24px;
-  max-width: 560px;
-  margin: 0 auto;
   min-height: 100vh;
+  padding: 24px;
+  max-width: 1120px;
+  margin: 0 auto;
   background: var(--bg-page);
+}
+
+.hero-card {
+  margin-bottom: 24px;
+  padding: 24px;
+  border-radius: 26px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(247, 252, 248, 0.94)),
+    var(--bg-card);
+  border: 1px solid rgba(198, 220, 202, 0.8);
+  box-shadow: 0 18px 40px rgba(73, 105, 77, 0.08);
 }
 
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  gap: 20px;
+  align-items: flex-start;
   margin-bottom: 24px;
 }
 
-.add-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
+.hero-tag {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 h1 {
-  font-size: 20px;
-  font-weight: 600;
+  margin: 0 0 10px;
+  font-size: 34px;
+  line-height: 1.15;
   color: var(--text-primary);
+}
+
+.hero-desc {
   margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  max-width: 580px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.solid-btn,
+.ghost-btn,
+.tab {
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.solid-btn,
+.ghost-btn {
+  padding: 11px 16px;
+  font-size: 14px;
+}
+
+.solid-btn {
+  border: none;
+  background: linear-gradient(135deg, var(--accent), #79ba8a);
+  color: #fff;
+}
+
+.ghost-btn {
+  border: 1px solid #d7e2d8;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-secondary);
+}
+
+.solid-btn:hover,
+.ghost-btn:hover,
+.tab:hover {
+  transform: translateY(-1px);
+}
+
+.solid-btn:hover {
+  box-shadow: 0 12px 24px rgba(96, 160, 115, 0.2);
 }
 
 .tabs {
-  display: flex;
-  border-bottom: 1px solid var(--border);
+  display: inline-flex;
+  padding: 6px;
+  background: #f4faf3;
+  border-radius: 16px;
+  border: 1px solid #e0ede2;
   margin-bottom: 20px;
 }
 
 .tab {
-  flex: 1;
-  text-align: center;
-  padding: 12px;
-  cursor: pointer;
+  min-width: 104px;
+  padding: 10px 18px;
+  border: none;
+  background: transparent;
   color: var(--text-tertiary);
   font-size: 14px;
-  font-weight: 500;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
 }
 
 .tab.active {
+  background: #fff;
   color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.dish-card {
-  position: relative;
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  cursor: pointer;
-}
-
-.dish-card.top-three {
-  border-color: #d4cfc4;
-}
-
-.card-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 1;
-  background: rgba(0,0,0,0.5);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 3px 8px;
-  border-radius: 4px;
-  letter-spacing: 0.02em;
-}
-
-.card-image-wrap {
-  width: 100%;
-  height: 0;
-  padding-bottom: 40%;
-  background: #ebebeb;
-  overflow: hidden;
-}
-
-.card-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.card-body {
-  padding: 14px 16px;
-}
-
-.card-title {
-  margin: 0 0 4px 0;
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.card-location {
-  font-size: 13px;
-  color: var(--text-tertiary);
-  margin: 0 0 10px 0;
-}
-
-.card-stars {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.card-votes {
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
-.card-meta {
-  margin-bottom: 10px;
-}
-
-.card-price {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.rating-box {
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-}
-
-.rating-label,
-.rating-box p {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  margin: 0 0 6px 0;
-  font-weight: 500;
-}
-
-.loading-tip {
-  text-align: center;
-  padding: 32px;
-  color: var(--text-tertiary);
-  font-size: 14px;
+  box-shadow: 0 8px 18px rgba(96, 160, 115, 0.12);
 }
 
 .search-wrapper {
   position: relative;
-  margin-bottom: 20px;
 }
 
 .search-input-wrap {
   position: relative;
-  display: flex;
-  align-items: center;
 }
 
 .search-input {
   width: 100%;
-  padding: 12px 40px 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  padding: 14px 44px 14px 16px;
+  border: 1px solid #d7e2d8;
+  border-radius: 16px;
+  background: #fff;
   font-size: 15px;
   color: var(--text-primary);
-  background: var(--bg-card);
   outline: none;
-  transition: border-color 0.2s ease;
   box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.search-input::placeholder {
-  color: var(--text-tertiary);
+.search-input:hover {
+  border-color: #bdd7c1;
 }
 
 .search-input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(96, 160, 115, 0.12);
 }
 
 .search-clear {
   position: absolute;
-  right: 10px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   padding: 4px;
@@ -523,58 +510,39 @@ h1 {
   background: transparent;
   color: var(--text-tertiary);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s, background 0.2s;
 }
 
 .search-clear:hover {
+  background: rgba(96, 160, 115, 0.12);
   color: var(--text-primary);
-  background: var(--accent-soft);
 }
 
 .search-dropdown {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 8px);
   left: 0;
   right: 0;
   max-height: 320px;
   overflow-y: auto;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background: #fff;
+  border: 1px solid #e0ede2;
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(73, 105, 77, 0.1);
   z-index: 100;
-}
-
-.search-dropdown::-webkit-scrollbar {
-  width: 6px;
-}
-
-.search-dropdown::-webkit-scrollbar-track {
-  background: var(--bg-page);
-  border-radius: 3px;
-}
-
-.search-dropdown::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
-
-.search-dropdown::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
 }
 
 .search-item {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
   cursor: pointer;
-  transition: background 0.12s ease;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid #eef4ef;
 }
 
 .search-item:last-child {
@@ -583,36 +551,159 @@ h1 {
 
 .search-item:hover,
 .search-item--selected {
-  background: var(--accent-soft);
+  background: rgba(96, 160, 115, 0.08);
 }
 
 .search-item-name {
-  font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
-  flex: 1;
-  min-width: 0;
+}
+
+.search-item-meta {
+  color: var(--text-tertiary);
+  font-size: 13px;
 }
 
 .search-highlight {
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 600;
-  padding: 0 1px;
-  border-radius: 2px;
-}
-
-.search-item-stars {
-  flex-shrink: 0;
-  margin-left: 12px;
+  background: rgba(255, 214, 153, 0.35);
+  color: #8f641a;
+  border-radius: 4px;
 }
 
 .search-loading,
 .search-empty {
-  padding: 20px 14px;
+  padding: 20px 16px;
   text-align: center;
-  font-size: 14px;
   color: var(--text-tertiary);
+}
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.dish-card {
+  position: relative;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(198, 220, 202, 0.8);
+  box-shadow: 0 16px 36px rgba(73, 105, 77, 0.08);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.dish-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 44px rgba(73, 105, 77, 0.12);
+}
+
+.dish-card.top-three {
+  border-color: rgba(255, 206, 115, 0.7);
+}
+
+.card-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 206, 115, 0.2);
+  color: #a06713;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.card-body {
+  padding: 22px;
+}
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.card-title {
+  margin: 0 0 8px;
+  font-size: 22px;
+  color: var(--text-primary);
+}
+
+.card-location {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.price-chip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(96, 160, 115, 0.12);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.stat-box {
+  padding: 14px 12px;
+  border-radius: 16px;
+  background: #f7fbf6;
+  border: 1px solid #e0ede2;
+}
+
+.stat-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.stat-box strong {
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+.card-stars {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.card-comment-count {
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.rating-box {
+  padding-top: 16px;
+  border-top: 1px solid #eef4ef;
+}
+
+.rating-label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.loading-tip,
+.empty-panel {
+  text-align: center;
+  padding: 36px;
+  color: var(--text-tertiary);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(198, 220, 202, 0.8);
+  border-radius: 22px;
 }
 
 .search-dropdown-enter-active,
@@ -628,18 +719,36 @@ h1 {
 
 .dish-card--highlight {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-soft);
+  box-shadow: 0 0 0 4px rgba(96, 160, 115, 0.12);
 }
 
 @media (max-width: 768px) {
-  .search-input {
-    font-size: 16px;
-  }
-}
-
-@media (min-width: 1200px) {
   .rank-container {
-    max-width: 640px;
+    padding: 18px;
+  }
+
+  .header,
+  .card-head,
+  .card-stars {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .tabs {
+    width: 100%;
+  }
+
+  .tab {
+    flex: 1;
+  }
+
+  .card-stats {
+    grid-template-columns: 1fr;
   }
 }
 </style>
