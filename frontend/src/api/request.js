@@ -1,11 +1,11 @@
 /**
- * 前端请求封装：统一 baseURL，与后端 /api/v1 路由对应
- * 开发环境通过 vite proxy 将 /api 转发到后端，生产需配置同源或 CORS
+ * 前端请求封装：统一 baseURL，与后端 /api 路由对应
+ * 最小改动：仅修复路径前缀不一致导致的 404
  */
 import axios from 'axios';
 
 const request = axios.create({
-  baseURL: '/api/v1',
+  baseURL: '/api',
   timeout: 10000,
   headers: { 'Content-Type': 'application/json' }
 });

@@ -1,0 +1,54 @@
+[
+  {
+    "id": 101,
+    "name": "红烧排骨",
+    "canteen": "一食堂",
+    "floor": "",
+    "price": 12,
+    "ratings": [
+      {
+        "username": "system",
+        "score": 5,
+        "createTime": "2026-03-01 12:00:00"
+      }
+    ],
+    "comments": [
+      {
+        "id": 1,
+        "username": "system",
+        "score": 5,
+        "content": "经典下饭，值得一试",
+        "createTime": "2026-03-01 12:00:00"
+      }
+    ],
+    "createTime": "2026-03-01 12:00:00",
+    "averageScore": 5,
+    "totalVotes": 1
+  },
+  {
+    "id": 102,
+    "name": "香辣鸡腿饭",
+    "canteen": "二食堂",
+    "floor": "",
+    "price": 13,
+    "ratings": [
+      {
+        "username": "system",
+        "score": 4,
+        "createTime": "2026-03-02 12:00:00"
+      }
+    ],
+    "comments": [
+      {
+        "id": 1,
+        "username": "system",
+        "score": 4,
+        "content": "微辣开胃，分量足",
+        "createTime": "2026-03-02 12:00:00"
+      }
+    ],
+    "createTime": "2026-03-02 12:00:00",
+    "averageScore": 4,
+    "totalVotes": 1
+  }
+]

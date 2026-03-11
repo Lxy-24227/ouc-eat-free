@@ -10,12 +10,9 @@
     <div v-else-if="!dish" class="empty-tip">未找到菜品</div>
     <template v-else>
       <div class="dish-card">
-        <div class="card-image-wrap">
-          <img :src="dish.image || 'https://via.placeholder.com/400x240/ebebeb/999?text=—'" :alt="dish.name" class="card-image" />
-        </div>
         <div class="card-body">
           <h2 class="card-title">{{ dish.name }}</h2>
-          <p class="card-location">{{ dish.canteen }} · {{ dish.floor }}</p>
+          <p class="card-location">{{ dish.canteen || '未知食堂' }}</p>
           <div class="card-stars">
             <StarRating :model-value="Math.round(dish.averageScore)" readonly :show-score-text="true" />
             <span class="card-votes">{{ dish.totalVotes }} 人评分</span>
@@ -28,16 +25,20 @@
         <h3 class="section-title">用户评价</h3>
 
         <!-- 评价输入行 -->
+        <div class="comment-score-wrap">
+          <span class="score-label">评分</span>
+          <StarRating v-model="commentScore" :show-score-text="true" />
+        </div>
         <div class="comment-input-wrap">
           <input
             v-model="commentContent"
             type="text"
             class="comment-input"
-            placeholder="写下你的评价（最多20字）"
-            maxlength="20"
+            placeholder="写下你的评价（最多50字）"
+            maxlength="50"
             @input="onCommentInput"
           />
-          <span class="char-count" :class="{ over: isOverLimit }">{{ commentContent.length }}/20</span>
+          <span class="char-count" :class="{ over: isOverLimit }">{{ commentContent.length }}/50</span>
           <button
             class="submit-comment-btn"
             :disabled="!canSubmit || isSubmitting"
@@ -46,14 +47,15 @@
             {{ isSubmitting ? '提交中…' : '提交' }}
           </button>
         </div>
-        <p v-if="isOverLimit" class="over-hint">评论需控制在20字以内</p>
+        <p v-if="isOverLimit" class="over-hint">评论需控制在50字以内</p>
 
         <!-- 评价列表 -->
         <div v-if="commentsLoading" class="loading-tip">加载评价中…</div>
         <ul v-else-if="comments.length > 0" class="comment-list">
           <li v-for="c in comments" :key="c.id || c.createTime + c.content" class="comment-item">
-            <span class="comment-user">{{ c.userId || '匿名' }}</span>
+            <span class="comment-user">{{ c.username || c.userId || '匿名' }}</span>
             <span class="comment-content">{{ c.content }}</span>
+            <span class="comment-score">{{ c.score }}分</span>
             <span class="comment-time">{{ c.createTime }}</span>
           </li>
         </ul>
@@ -73,6 +75,7 @@ const route = useRoute();
 const router = useRouter();
 const dish = ref(null);
 const commentContent = ref('');
+const commentScore = ref(5);
 const comments = ref([]);
 const commentsLoading = ref(false);
 const isSubmitting = ref(false);
@@ -82,13 +85,18 @@ function goBack() {
   router.push('/DishRank');
 }
 
-const isOverLimit = computed(() => commentContent.value.length > 20);
-const canSubmit = computed(() => commentContent.value.trim().length > 0 && commentContent.value.length <= 20);
+const isOverLimit = computed(() => commentContent.value.length > 50);
+const canSubmit = computed(() => {
+  return commentContent.value.trim().length > 0
+    && commentContent.value.length <= 50
+    && Number(commentScore.value) >= 1
+    && Number(commentScore.value) <= 5;
+});
 
-/** 20字限制：粘贴等场景可能突破 maxlength，此处兜底截断 */
+/** 50字限制：粘贴等场景可能突破 maxlength，此处兜底截断 */
 function onCommentInput() {
-  if (commentContent.value.length > 20) {
-    commentContent.value = commentContent.value.slice(0, 20);
+  if (commentContent.value.length > 50) {
+    commentContent.value = commentContent.value.slice(0, 50);
   }
 }
 
@@ -112,11 +120,26 @@ async function submitComment() {
   if (!canSubmit.value || isSubmitting.value) return;
   const id = route.params.id;
   if (!id) return;
+  const userText = localStorage.getItem('user_info');
+  if (!userText) {
+    // 最小改动：仅修复未登录仍可评论的问题
+    alert('请先登录后再评论');
+    router.push({ path: '/login', query: { redirect: route.fullPath } });
+    return;
+  }
+  const user = JSON.parse(userText);
+
   isSubmitting.value = true;
   try {
-    const res = await addComment(Number(id), commentContent.value.trim());
+    const res = await addComment(
+      Number(id),
+      Number(commentScore.value),
+      commentContent.value.trim(),
+      user.username || 'anonymous'
+    );
     if (res?.code === 200) {
       commentContent.value = '';
+      commentScore.value = 5;
       await fetchComments();
       alert('提交成功！');
     } else {
@@ -134,15 +157,34 @@ onMounted(async () => {
   const state = history.state;
   if (state?.dish) {
     dish.value = state.dish;
+  } else {
+    const cached = localStorage.getItem('current_dish_detail');
+    if (cached) {
+      dish.value = JSON.parse(cached);
+    }
+  }
+
+  if (!dish.value && route.params.id) {
+    dish.value = {
+      id: route.params.id,
+      name: `菜品 #${route.params.id}`,
+      canteen: '',
+      averageScore: 0,
+      totalVotes: 0,
+      price: null
+    };
   } else if (route.params.id) {
-    dish.value = { id: route.params.id, name: `菜品 #${route.params.id}`, canteen: '', floor: '', averageScore: 0, totalVotes: 0, price: null, image: null };
+    localStorage.setItem('current_dish_detail', JSON.stringify(dish.value));
   }
   fetchComments();
 });
 
 watch(() => route.params.id, () => {
   const state = history.state;
-  if (state?.dish) dish.value = state.dish;
+  if (state?.dish) {
+    dish.value = state.dish;
+    localStorage.setItem('current_dish_detail', JSON.stringify(dish.value));
+  }
   fetchComments();
 });
 </script>
@@ -183,24 +225,9 @@ h1 {
 
 .dish-card {
   border-radius: 12px;
-  overflow: hidden;
   background: var(--bg-card);
   border: 1px solid var(--border);
   margin-bottom: 24px;
-}
-
-.card-image-wrap {
-  width: 100%;
-  padding-bottom: 40%;
-  background: #ebebeb;
-  overflow: hidden;
-}
-
-.card-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
 }
 
 .card-body {
@@ -253,10 +280,21 @@ h1 {
 }
 
 .comment-input-wrap {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
   gap: 10px;
   align-items: center;
   margin-bottom: 8px;
+}
+.comment-score-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.score-label {
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
 .comment-input {
@@ -294,6 +332,10 @@ h1 {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+  transition: opacity .2s ease;
+}
+.submit-comment-btn:hover:not(:disabled) {
+  opacity: .92;
 }
 
 .submit-comment-btn:disabled {
@@ -335,10 +377,16 @@ h1 {
 }
 
 .comment-time {
-  display: block;
+  display: inline-block;
   font-size: 12px;
   color: var(--text-tertiary);
   margin-top: 4px;
+  margin-left: 8px;
+}
+.comment-score {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--accent);
 }
 
 .loading-tip,
@@ -347,5 +395,14 @@ h1 {
   padding: 24px;
   color: var(--text-tertiary);
   font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .comment-input-wrap {
+    grid-template-columns: 1fr;
+  }
+  .submit-comment-btn {
+    width: 100%;
+  }
 }
 </style>

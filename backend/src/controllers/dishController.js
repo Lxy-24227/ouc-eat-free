@@ -28,3 +28,19 @@ exports.getRanking = async (req, res) => {
         res.status(500).json({ code: 500, message: '服务器内部错误' });
     }
 };
+
+// 最小改动：仅修复创建菜品接口缺失导致前端 404
+exports.createDish = async (req, res) => {
+    try {
+        const { name, canteen, price, floor } = req.body || {};
+        if (!name || !canteen || price == null || Number(price) <= 0) {
+            return res.status(400).json({ code: 400, message: '参数错误：name/canteen/price 必填且 price > 0' });
+        }
+
+        const saved = await dishService.createDish({ name, canteen, price, floor });
+        res.json({ code: 200, message: '菜品创建成功', data: saved });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ code: 500, message: '创建失败：' + error.message });
+    }
+};

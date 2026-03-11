@@ -40,8 +40,10 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import { login } from '../api/auth';
 
+const route = useRoute();
 const router = useRouter();
 const form = ref({ username: '', password: '' });
 const isLoading = ref(false);
@@ -53,17 +55,24 @@ async function handleLogin() {
   }
 
   isLoading.value = true;
-  // 模拟 API 请求
-  setTimeout(() => {
-    // 模拟保存用户信息到本地
+  try {
+    const res = await login(form.value.username.trim(), form.value.password);
+    if (res?.code !== 200 || !res?.data?.username) {
+      alert(res?.message || '用户名/密码错误');
+      return;
+    }
+
     localStorage.setItem('user_info', JSON.stringify({
-      username: form.value.username,
-      avatar: 'https://via.placeholder.com/150/ebebeb/999?text=User',
+      username: res.data.username,
       bio: '这个人很懒，什么都没写~'
     }));
+    const redirect = route.query?.redirect;
+    router.push(typeof redirect === 'string' ? redirect : '/DishRank');
+  } catch (error) {
+    alert(error?.message || '用户名/密码错误');
+  } finally {
     isLoading.value = false;
-    router.push('/DishRank'); // 登录成功跳回主页
-  }, 800);
+  }
 }
 </script>
 
@@ -142,6 +151,9 @@ h1 {
   margin-top: 8px;
   transition: opacity 0.2s;
 }
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.92;
+}
 
 .btn-primary:disabled {
   opacity: 0.6;
@@ -165,6 +177,9 @@ h1 {
   font-weight: 500;
   cursor: pointer;
   padding: 0 4px;
+}
+.link-btn:hover {
+  text-decoration: underline;
 }
 
 @media (min-width: 1200px) {

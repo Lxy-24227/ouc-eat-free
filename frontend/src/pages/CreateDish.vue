@@ -14,13 +14,6 @@
       </div>
 
       <div class="form-group">
-        <label>楼层</label>
-        <select v-model="formData.floor">
-          <option v-for="f in floors" :key="f" :value="f">{{ f }}</option>
-        </select>
-      </div>
-
-      <div class="form-group">
         <label>菜品名称</label>
         <input
           v-model="formData.name"
@@ -30,28 +23,15 @@
         />
       </div>
 
-      <div class="form-group rating-section">
-        <label>初始评分（选填）</label>
-        <div class="stars">
-          <StarRating v-model="formData.initialScore" :show-score-text="false" />
-          <span class="score-hint">{{ scoreHint }}</span>
-        </div>
-      </div>
-
-      <div class="form-group comment-section">
-        <label>首次评价（选填，最多20字）</label>
-        <div class="comment-input-row">
-          <input
-            v-model="formData.comment"
-            type="text"
-            placeholder="写下你的评价…"
-            maxlength="20"
-            class="comment-input"
-            @input="onCommentInput"
-          />
-          <span class="char-count" :class="{ over: formData.comment.length > 20 }">{{ formData.comment.length }}/20</span>
-        </div>
-        <p v-if="formData.comment.length > 20" class="over-hint">评论需控制在20字以内</p>
+      <div class="form-group">
+        <label>价格（元）</label>
+        <input
+          v-model.number="formData.price"
+          type="number"
+          min="0.1"
+          step="0.1"
+          placeholder="请输入价格，例如 12.5"
+        />
       </div>
 
       <button
@@ -68,87 +48,51 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import StarRating from '../components/StarRating.vue';
-import { addComment } from '../api/comment';
+import { createDish } from '../api/dish';
 
 const router = useRouter();
 const isSubmitting = ref(false);
 
 const canteens = ['一食堂', '二食堂', '三食堂', '四食堂'];
-const floors = ['B1', 'F1', 'F2', 'F3'];
 
-// 表单响应式数据：增加了 initialScore、comment
 const formData = ref({
   canteen: '一食堂',
-  floor: 'F1',
   name: '',
-  initialScore: 0,
-  comment: ''
-});
-
-/** 20字限制：粘贴等可能突破 maxlength，此处兜底截断 */
-function onCommentInput() {
-  if (formData.value.comment.length > 20) {
-    formData.value.comment = formData.value.comment.slice(0, 20);
-  }
-}
-
-// 计算评分提示文案
-const scoreHint = computed(() => {
-  const hints = {
-    0: '点击选择星级',
-    1: '极差，不予推荐',
-    2: '一般，不推荐',
-    3: '尚可，可以尝试',
-    4: '推荐，值得一试',
-    5: '非常推荐'
-  };
-  return hints[formData.value.initialScore];
+  price: null
 });
 
 const handleSubmit = async () => {
   if (!formData.value.name.trim()) {
-    alert("请输入菜品名称！");
+    alert('请输入菜品名称！');
     return;
   }
-
-  // 校验是否打分（如果你们强制要求创建时必须评价）
-  if (formData.value.initialScore === 0) {
-    if (!confirm("你还没有打分，确定要提交吗？")) return;
+  if (formData.value.price == null || Number(formData.value.price) <= 0) {
+    alert('请输入正确价格（大于0）！');
+    return;
   }
 
   try {
     isSubmitting.value = true;
-
-    // 模拟创建菜品（实际项目需对接 POST /api/v1/dish）
-    const mockDishId = 105;
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // 若有评价内容，提交至后端；接口失败时给出明确提示，仍跳转榜单
-    const comment = formData.value.comment?.trim();
-    let commentOk = true;
-    if (comment && comment.length <= 20) {
-      try {
-        await addComment(mockDishId, comment);
-      } catch (e) {
-        commentOk = false;
-        alert("发布成功！但评论提交失败：" + (e?.message || "请检查网络"));
-      }
+    // 最小改动：仅修复创建菜品未入库问题，改为真实接口
+    const res = await createDish({
+      name: formData.value.name.trim(),
+      canteen: formData.value.canteen,
+      price: Number(formData.value.price)
+    });
+    if (res?.code === 200) {
+      alert('发布成功！');
+      router.push('/DishRank');
+      return;
     }
-
-    if (commentOk) {
-      alert(comment ? "发布并评价成功！" : "发布成功！");
-    }
-    router.push('/DishRank');
-
+    alert(res?.message || '发布失败，请稍后重试');
   } catch (error) {
-    console.error("提交失败:", error);
-    alert("发布失败，请检查网络");
+    console.error('提交失败:', error);
+    alert(error?.message || '发布失败，请检查网络');
   } finally {
     isSubmitting.value = false;
-  }
+  } 
 };
 </script>
 
@@ -177,6 +121,11 @@ const handleSubmit = async () => {
   margin-right: 16px;
   font-size: 14px;
   font-weight: 500;
+  transition: all .2s ease;
+}
+.back-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 h1 {
@@ -222,64 +171,6 @@ select:focus, input:focus {
   border-color: var(--accent);
 }
 
-.rating-section {
-  padding: 16px 0;
-  border-top: 1px solid var(--border);
-}
-
-.stars {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.score-hint {
-  font-size: 13px;
-  color: var(--text-tertiary);
-}
-
-.comment-section {
-  margin-top: 4px;
-}
-
-.comment-input-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.comment-input {
-  flex: 1;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 15px;
-  color: var(--text-primary);
-  outline: none;
-  box-sizing: border-box;
-  background: var(--bg-card);
-}
-
-.comment-input:focus {
-  border-color: var(--accent);
-}
-
-.char-count {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  min-width: 36px;
-}
-
-.char-count.over {
-  color: #c53030;
-}
-
-.over-hint {
-  font-size: 12px;
-  color: #c53030;
-  margin: 8px 0 0 0;
-}
-
 .submit-btn {
   width: 100%;
   padding: 14px;
@@ -292,6 +183,9 @@ select:focus, input:focus {
   cursor: pointer;
   margin-top: 8px;
   transition: opacity 0.2s;
+}
+.submit-btn:hover:not(:disabled) {
+  opacity: 0.92;
 }
 
 .submit-btn:active {
@@ -308,5 +202,14 @@ select:focus, input:focus {
   color: var(--text-tertiary);
   font-size: 12px;
   margin-top: 28px;
+}
+
+@media (min-width: 900px) {
+  .create-dish-container {
+    max-width: 560px;
+  }
+  .card {
+    padding: 28px;
+  }
 }
 </style>

@@ -35,13 +35,14 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { register } from '../api/auth';
 
 const router = useRouter();
 const form = ref({ username: '', password: '', confirmPassword: '' });
 const isLoading = ref(false);
 
 async function handleRegister() {
-  if (!form.value.username || !form.value.password) {
+  if (!form.value.username || !form.value.password || !form.value.confirmPassword) {
     alert('请填写完整信息');
     return;
   }
@@ -51,12 +52,19 @@ async function handleRegister() {
   }
 
   isLoading.value = true;
-  // 模拟注册
-  setTimeout(() => {
-    alert('注册成功，请登录');
+  try {
+    const res = await register(form.value.username.trim(), form.value.password);
+    if (res?.code === 200) {
+      alert('注册成功，请登录');
+      router.push('/login');
+      return;
+    }
+    alert(res?.message || '注册失败');
+  } catch (error) {
+    alert(error?.message || '注册失败');
+  } finally {
     isLoading.value = false;
-    router.push('/login');
-  }, 800);
+  }
 }
 </script>
 
@@ -78,10 +86,12 @@ h1 { font-size: 24px; font-weight: 600; color: var(--text-primary); margin: 0; }
 .form-label { display: block; font-size: 14px; font-weight: 500; color: var(--text-secondary); margin-bottom: 8px; }
 .form-input { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; color: var(--text-primary); background: var(--bg-card); outline: none; box-sizing: border-box; }
 .form-input:focus { border-color: var(--accent); }
-.btn-primary { width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+.btn-primary { width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px; transition: opacity .2s ease; }
+.btn-primary:hover:not(:disabled) { opacity: .92; }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 .auth-links { margin-top: 20px; text-align: center; font-size: 14px; }
 .text-hint { color: var(--text-tertiary); }
 .link-btn { background: transparent; border: none; color: var(--accent); font-weight: 500; cursor: pointer; padding: 0 4px; }
+.link-btn:hover { text-decoration: underline; }
 @media (min-width: 1200px) { .page-container { max-width: 480px; } }
 </style>

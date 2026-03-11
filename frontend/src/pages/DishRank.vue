@@ -5,7 +5,7 @@
   <div class="header-actions">
       <button @click="$router.push('/CreateDish')" class="add-btn">投稿</button>
       <div class="avatar-wrapper" @click="$router.push('/profile')">
-        <img :src="userInfo.avatar" alt="我的" class="header-avatar" />
+        <span class="header-avatar-text">{{ userInitial }}</span>
       </div>
     </div>
   </div>
@@ -105,28 +105,15 @@
         @click="goToDetail(dish)"
       >
         <span v-if="index < 3" class="card-badge">TOP{{ index + 1 }}</span>
-        <div class="card-image-wrap">
-          <img :src="dish.image || 'https://via.placeholder.com/400x240/ebebeb/999?text=—'" :alt="dish.name" class="card-image" />
-        </div>
         <div class="card-body">
           <h3 class="card-title">{{ dish.name }}</h3>
-          <p class="card-location">
-            {{ dish.canteen }}<template v-if="dish.canteen && dish.floor"> · </template>{{ dish.floor }}
-          </p>
+          <p class="card-location">{{ dish.canteen || '未知食堂' }}</p>
           <div class="card-stars">
             <StarRating :model-value="Math.round(dish.averageScore)" readonly :show-score-text="true" />
-            <span class="card-votes">{{ dish.totalVotes }} 人评分</span>
+            <span class="card-votes">{{ dish.totalVotes }} 人评分 · {{ dish.commentCount }} 条评论</span>
           </div>
           <div class="card-meta">
             <span class="card-price">¥{{ dish.price != null ? dish.price : '—' }}</span>
-          </div>
-          <div class="rating-box" @click.stop>
-            <p class="rating-label">我的评分</p>
-            <StarRating
-              v-model="dish.userScore"
-              @update:modelValue="handleRate(dish)"
-              :show-score-text="false"
-            />
           </div>
         </div>
       </div>
@@ -139,7 +126,6 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import StarRating from '../components/StarRating.vue';
 import { getRanking } from '../api/rank';
-import { submitRating } from '../api/rating';
 import { searchDish, getHighlightedParts } from '../utils/searchDish';
 import { debounce } from '../utils/debounce';
 import { throttle } from '../utils/throttle';
@@ -149,25 +135,15 @@ const currentTab = ref('red');
 const loading = ref(false);
 
 const userInfo = ref({
-  avatar: 'https://via.placeholder.com/150/ebebeb/999?text=User'
+  username: ''
 });
-
-onMounted(() => {
-  fetchRanking();
-  document.addEventListener('click', handleClickOutside);
-
-  // 新增：进入主页时读取本地用户信息（同步头像）
-  const cached = localStorage.getItem('user_info');
-  if (cached) {
-    userInfo.value = JSON.parse(cached);
-  }
-});
+const userInitial = computed(() => (userInfo.value.username || '我').slice(0, 1).toUpperCase());
 
 const MOCK_DISHES = [
-  { id: 101, name: '红烧排骨', canteen: '一食堂', floor: 'F2', averageScore: 4.8, totalVotes: 156, userScore: 0, price: 12 },
-  { id: 102, name: '螺蛳粉', canteen: '二食堂', floor: 'B1', averageScore: 2.1, totalVotes: 89, userScore: 0, price: 10 },
-  { id: 103, name: '菠萝咕咾肉', canteen: '三食堂', floor: 'F1', averageScore: 4.5, totalVotes: 42, userScore: 0, price: 15 },
-  { id: 104, name: '仰望星空派', canteen: '四食堂', floor: 'F3', averageScore: 1.2, totalVotes: 230, userScore: 0, price: 8 },
+  { id: 101, name: '红烧排骨', canteen: '一食堂', averageScore: 4.8, totalVotes: 156, commentCount: 38, price: 12 },
+  { id: 102, name: '螺蛳粉', canteen: '二食堂', averageScore: 2.1, totalVotes: 89, commentCount: 21, price: 10 },
+  { id: 103, name: '菠萝咕咾肉', canteen: '三食堂', averageScore: 4.5, totalVotes: 42, commentCount: 10, price: 15 },
+  { id: 104, name: '仰望星空派', canteen: '四食堂', averageScore: 1.2, totalVotes: 230, commentCount: 54, price: 8 },
 ];
 
 const dishes = ref([...MOCK_DISHES]);
@@ -272,12 +248,10 @@ function mapDish(item) {
     id: item.id,
     name: item.name ?? '未命名',
     canteen: item.canteen ?? item.restaurant_name ?? '',
-    floor: item.floor ?? '',
     averageScore: Number(item.averageScore ?? item.avgRating ?? item.avg_score) || 0,
     totalVotes: Number(item.totalVotes ?? item.voteCount ?? item.total_votes) || 0,
-    userScore: 0,
-    price: item.price ?? null,
-    image: item.image ?? null,
+    commentCount: Number(item.commentCount ?? item.commentsCount ?? item.comments?.length) || 0,
+    price: item.price ?? null
   };
 }
 
@@ -285,8 +259,8 @@ async function fetchRanking() {
   loading.value = true;
   try {
     const res = await getRanking({ type: currentTab.value, page: 1, pageSize: 50 });
-    if (res?.code === 200 && res?.data?.list?.length) {
-      dishes.value = res.data.list.map(mapDish);
+    if (res?.code === 200) {
+      dishes.value = (res?.data?.list || []).map(mapDish);
     }
   } catch (_) {
     dishes.value = [...MOCK_DISHES];
@@ -296,6 +270,8 @@ async function fetchRanking() {
 }
 
 onMounted(() => {
+  const cached = localStorage.getItem('user_info');
+  if (cached) userInfo.value = JSON.parse(cached);
   fetchRanking();
   document.addEventListener('click', handleClickOutside);
 });
@@ -317,23 +293,6 @@ function goToDetail(dish) {
   localStorage.setItem('current_dish_detail', JSON.stringify(plainDish));
   router.push({ name: 'DishDetail', params: { id: dish.id }, state: { dish: plainDish } });
 }
-
-async function handleRate(dish) {
-  if (!dish.userScore || dish.userScore < 1) return;
-  try {
-    await submitRating(dish.id, dish.userScore);
-    const newTotal = (dish.totalVotes || 0) + 1;
-    const newAvg = ((dish.averageScore * (dish.totalVotes || 0)) + dish.userScore) / newTotal;
-    dish.averageScore = Math.round(newAvg * 100) / 100;
-    dish.totalVotes = newTotal;
-    alert(`打分成功！该菜品目前平均分：${dish.averageScore.toFixed(1)}`);
-  } catch (e) {
-    const newTotal = (dish.totalVotes || 0) + 1;
-    dish.averageScore = ((dish.averageScore * (dish.totalVotes || 0)) + dish.userScore) / newTotal;
-    dish.totalVotes = newTotal;
-    alert(`打分已更新（本地）：${dish.averageScore.toFixed(1)}`);
-  }
-}
 </script>
 
 <style scoped>
@@ -349,11 +308,6 @@ async function handleRate(dish) {
   display: flex;
   gap: 10px;
 }
-.profile-btn {
-  /* 如果想给"我的"按钮换个颜色强调，可以覆盖背景和颜色 */
-  background: var(--accent-soft);
-  color: var(--accent);
-}
 
 .header-actions {
   display: flex;
@@ -365,20 +319,27 @@ async function handleRate(dish) {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--border);
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  background: var(--bg-card);
+}
+.avatar-wrapper:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .avatar-wrapper:active {
   transform: scale(0.9);
 }
 
-.header-avatar {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.header-avatar-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
 }
 
 .header {
@@ -397,6 +358,12 @@ async function handleRate(dish) {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+  transition: all .2s ease;
+}
+.add-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 h1 {
@@ -438,11 +405,13 @@ h1 {
 .dish-card {
   position: relative;
   border-radius: 12px;
-  overflow: hidden;
   background: var(--bg-card);
   border: 1px solid var(--border);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
+}
+.dish-card:hover {
+  border-color: var(--accent);
 }
 
 .dish-card.top-three {
@@ -461,21 +430,6 @@ h1 {
   padding: 3px 8px;
   border-radius: 4px;
   letter-spacing: 0.02em;
-}
-
-.card-image-wrap {
-  width: 100%;
-  height: 0;
-  padding-bottom: 40%;
-  background: #ebebeb;
-  overflow: hidden;
-}
-
-.card-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
 }
 
 .card-body {
@@ -515,19 +469,6 @@ h1 {
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
-}
-
-.rating-box {
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-}
-
-.rating-label,
-.rating-box p {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  margin: 0 0 6px 0;
-  font-weight: 500;
 }
 
 .loading-tip {
